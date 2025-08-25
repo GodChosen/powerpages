@@ -1,10 +1,10 @@
-# Power Pages Training and Demo Repository
+# Power Pages Training and Demo Repository 
 
 Welcome to the **Power Pages Training and Demo Repository**! This repository is designed to help you learn and demonstrate the capabilities of Microsoft Power Pages.
 
 ## Overview
 
-Microsoft Power Pages is a secure, enterprise-grade, low-code SaaS platform for creating, hosting, and managing modern external-facing business websites. This repository contains resources, examples, and exercises to help you get started with Power Pages.
+Microsoft Power Pages is a secure, enterprise-grade, low-code SaaS platform for creating, hosting, and managing modern external-facing business websites. The repository contains resources, examples, and exercises to help you get started with Power Pages.
 
 ## Repository Structure
 
