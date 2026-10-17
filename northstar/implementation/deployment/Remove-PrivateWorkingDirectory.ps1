@@ -7,5 +7,5 @@ if(-not $target.StartsWith($root,[StringComparison]::OrdinalIgnoreCase) -or
 }
 if(Test-Path -LiteralPath $target){
     try{Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction Stop}
-    catch{Write-Warning 'Best-effort private working-directory cleanup failed; ephemeral runner destruction remains required.'}
+    catch{throw 'Private working-directory cleanup failed; ephemeral runner destruction remains required.'}
 }

@@ -86,6 +86,8 @@ jobs:
 
         & "$env:DEPLOY_ROOT/tests/Test-ArtifactCrypto.ps1"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        & (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'tests/Test-HostedExport.ps1')
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
         & "$env:DEPLOY_ROOT/tests/Test-GitHubProtection.ps1"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -95,6 +97,7 @@ jobs:
         path: |-
           ${{ env.DEPLOY_ROOT }}/test-results.json
           ${{ env.DEPLOY_ROOT }}/crypto-test-results.json
+          ${{ env.DEPLOY_ROOT }}/hosted-export-test-results.json
           ${{ env.DEPLOY_ROOT }}/protection-test-results.json
         if-no-files-found: error
         retention-days: '14'
@@ -120,7 +123,7 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        & "$env:DEPLOY_ROOT/Assert-GitHubProtection.ps1" -Repository $env:GITHUB_REPOSITORY
+        & (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'Assert-GitHubProtection.ps1') -Repository $env:GITHUB_REPOSITORY
         dotnet tool install Microsoft.PowerApps.CLI.Tool --version 2.9.3 --tool-path "$env:RUNNER_TEMP/pac"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     - name: Export and encrypt actual unmanaged Training release
@@ -129,43 +132,8 @@ jobs:
         CONFIRMATION: ${{ inputs.confirmation }}
         ARTIFACT_KEY: ${{ secrets.NORTHSTAR_ARTIFACT_KEY }}
       run: |-
-        $private = "$env:RUNNER_TEMP/northstar-private-export"
-        New-Item -ItemType Directory -Path $private -Force | Out-Null
-        try {
-          $pac = "$env:RUNNER_TEMP/pac/pac.exe"
-          $export = "$private/export"
-          & "$env:DEPLOY_ROOT/Invoke-TrainingPipeline.ps1" -Mode Export `
-            -Authentication GitHubFederated -Confirmation $env:CONFIRMATION `
-            -PacPath $pac -OutputPath $export -WorkingDirectory "$private/evidence" |
-            Set-Content "$private/export-result.json"
-          $site = @(Get-ChildItem "$export/site-export" -Filter website.yml -Recurse)
-          if ($site.Count -ne 1) { throw 'Export contains ambiguous site roots.' }
-          & "$env:DEPLOY_ROOT/Invoke-TrainingPipeline.ps1" -Mode Package `
-            -SitePath $site[0].DirectoryName -SolutionPath "$export/solution.zip" `
-            -OutputPath "$private/release.zip" -SourceRevision $env:GITHUB_SHA |
-            Set-Content "$private/package-result.json"
-          Import-Module "$env:DEPLOY_ROOT/ArtifactCrypto.psm1" -Force
-          $public = "$env:RUNNER_TEMP/publish"
-          $summary = Protect-ReleaseArtifact -InputPath "$private/release.zip" `
-            -OutputPath "$public/release.enc.json" -WorkingRoot $public `
-            -KeyBase64 $env:ARTIFACT_KEY -SourceRevision $env:GITHUB_SHA
-          $summary | ConvertTo-Json | Set-Content "$public/release-summary.json"
-        } catch {
-          $failure = $_
-          $diagnostic = "$private/evidence/pac-solution-export-failure.txt"
-          if (Test-Path -LiteralPath $diagnostic) {
-            Import-Module "$env:DEPLOY_ROOT/ArtifactCrypto.psm1" -Force
-            $encryptedRoot = "$env:RUNNER_TEMP/export-diagnostics"
-            $summary = Protect-ReleaseArtifact -InputPath $diagnostic `
-              -OutputPath "$encryptedRoot/pac-export.enc.json" -WorkingRoot $encryptedRoot `
-              -KeyBase64 $env:ARTIFACT_KEY -SourceRevision $env:GITHUB_SHA `
-              -Purpose PacExportDiagnostic
-            $summary | ConvertTo-Json | Set-Content "$encryptedRoot/diagnostic-summary.json"
-          }
-          throw $failure
-        } finally {
-          & "$env:DEPLOY_ROOT/Remove-PrivateWorkingDirectory.ps1" -Path $private -RunnerTemporaryRoot $env:RUNNER_TEMP
-        }
+        $root = Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT
+        & (Join-Path $root 'Invoke-HostedTrainingExport.ps1')
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: northstar-release
@@ -210,9 +178,10 @@ jobs:
         CANDIDATE_RUN: ${{ inputs.candidate_run_id }}
         ROLLBACK_RUN: ${{ inputs.rollback_run_id }}
       run: |
-        & "$env:DEPLOY_ROOT/Assert-GitHubProtection.ps1" -Repository $env:GITHUB_REPOSITORY
-        $candidate = & "$env:DEPLOY_ROOT/Assert-GitHubRun.ps1" -RunId $env:CANDIDATE_RUN -Repository $env:GITHUB_REPOSITORY
-        $baseline = & "$env:DEPLOY_ROOT/Assert-GitHubRun.ps1" -RunId $env:ROLLBACK_RUN -Repository $env:GITHUB_REPOSITORY
+        & (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'Assert-GitHubProtection.ps1') -Repository $env:GITHUB_REPOSITORY
+        Import-Module (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'ArtifactCrypto.psm1') -Force
+        $candidate = & (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'Assert-GitHubRun.ps1') -RunId $env:CANDIDATE_RUN -Repository $env:GITHUB_REPOSITORY
+        $baseline = & (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'Assert-GitHubRun.ps1') -RunId $env:ROLLBACK_RUN -Repository $env:GITHUB_REPOSITORY
         "candidate_sha=$candidate" >> $env:GITHUB_OUTPUT
         "baseline_sha=$baseline" >> $env:GITHUB_OUTPUT
     - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -245,8 +214,9 @@ jobs:
       run: |-
         $private = "$env:RUNNER_TEMP/northstar-private-deploy"
         New-Item -ItemType Directory -Path $private -Force | Out-Null
+        $primaryFailure = $null
         try {
-          Import-Module "$env:DEPLOY_ROOT/ArtifactCrypto.psm1" -Force
+          Import-Module (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'ArtifactCrypto.psm1') -Force
           $candidate = Unprotect-ReleaseArtifact `
             -InputPath "$env:RUNNER_TEMP/candidate/release.enc.json" `
             -ExpectedCipherSha256 $env:CANDIDATE_SHA256 -OutputPath "$private/candidate/release.zip" `
@@ -255,7 +225,7 @@ jobs:
             -InputPath "$env:RUNNER_TEMP/rollback/release.enc.json" `
             -ExpectedCipherSha256 $env:ROLLBACK_SHA256 -OutputPath "$private/rollback/release.zip" `
             -WorkingRoot $private -KeyBase64 $env:ARTIFACT_KEY -ExpectedSourceRevision $env:BASELINE_COMMIT
-          & "$env:DEPLOY_ROOT/Invoke-TrainingPipeline.ps1" -Mode $env:OPERATION `
+          & (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'Invoke-TrainingPipeline.ps1') -Mode $env:OPERATION `
             -Authentication GitHubFederated -Confirmation $env:CONFIRMATION `
             -PacPath "$env:RUNNER_TEMP/pac/pac.exe" -WorkingDirectory "$private/evidence" `
             -ArtifactPath $candidate.path -ExpectedSha256 $candidate.plaintextSha256 `
@@ -268,8 +238,16 @@ jobs:
             sourceRevision=$env:CANDIDATE_COMMIT;candidateCipherSha256=$env:CANDIDATE_SHA256;
             rollbackCipherSha256=$env:ROLLBACK_SHA256} |
             ConvertTo-Json | Set-Content "$public/deployment-summary.json"
+        } catch {
+          $primaryFailure = $_
+          throw
         } finally {
-          & "$env:DEPLOY_ROOT/Remove-PrivateWorkingDirectory.ps1" -Path $private -RunnerTemporaryRoot $env:RUNNER_TEMP
+          try {
+            & (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'Remove-PrivateWorkingDirectory.ps1') -Path $private -RunnerTemporaryRoot $env:RUNNER_TEMP
+          } catch {
+            if (-not $primaryFailure) { throw 'Private deployment cleanup failed; release is not successful.' }
+            Write-Warning 'Private deployment cleanup failed; original operation failure is preserved. Temporary files may remain on this runner.'
+          }
         }
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       if: always()
