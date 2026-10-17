@@ -36,20 +36,56 @@ function Assert-Profile([string]$Path, $Policy) {
     Assert-True ($body.Trim() -ceq '{}') 'Only the reviewed empty Training override profile is supported.'
 }
 
-function Assert-TrainingSolution([string]$Path, $Policy) {
+function Read-SolutionAssemblyIdentity([byte[]]$Bytes) {
+    $temporary=Join-Path ([IO.Path]::GetTempPath()) ('northstar-identity-'+[guid]::NewGuid().ToString('N')+'.dll')
+    try {
+        [IO.File]::WriteAllBytes($temporary,$Bytes)
+        # Inspect metadata; never load or execute the exported plug-in.
+        return [Reflection.AssemblyName]::GetAssemblyName($temporary).FullName
+    } finally {if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force}}
+}
+
+function Get-TrainingSolutionAssembly([string]$Path, $Policy) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $Path).Path)
     try {
+        $names=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+        foreach($item in $zip.Entries){
+            $name=$item.FullName
+            Assert-True ($name -notmatch '\\|(^|/)\.\.?(/|$)|:|^/' -and -not [IO.Path]::IsPathRooted($name)) 'Unsafe solution archive path.'
+            Assert-True ($names.Add($name)) 'Duplicate solution archive entry.'
+            Assert-True ((($item.ExternalAttributes -shr 16) -band 0xF000) -ne 0xA000) 'Solution archive symlink is forbidden.'
+        }
         $entry = $zip.GetEntry('solution.xml')
         Assert-True ($null -ne $entry) 'Solution manifest missing.'
         $reader = [IO.StreamReader]::new($entry.Open())
         try { [xml]$xml = $reader.ReadToEnd() } finally { $reader.Dispose() }
         Assert-True ([string]$xml.ImportExportXml.SolutionManifest.Managed -ceq '0') 'Training accepts only unmanaged lab updates; managed promotion is not authorized.'
         Assert-True ([string]$xml.ImportExportXml.SolutionManifest.UniqueName -ceq $Policy.solutionUniqueName) 'Wrong solution unique name.'
-        Assert-True ($null -ne $zip.GetEntry('customizations.xml')) 'Solution customizations missing.'
-        $assemblies=@($zip.Entries | Where-Object { [IO.Path]::GetFileName($_.FullName) -ceq 'Northstar.Lifecycle.dll' })
-        Assert-True ($assemblies.Count -eq 1) 'Unmanaged Training export must contain the actual Northstar.Lifecycle.dll; schema-only ZIPs are rejected.'
+        $entry=$zip.GetEntry('customizations.xml')
+        Assert-True ($null -ne $entry -and $entry.Length -le 10485760) 'Solution customizations missing or oversized.'
+        $settings=[Xml.XmlReaderSettings]::new();$settings.DtdProcessing=[Xml.DtdProcessing]::Prohibit;$settings.XmlResolver=$null
+        $stream=$entry.Open();$reader=[Xml.XmlReader]::Create($stream,$settings)
+        try {$customizations=[Xml.XmlDocument]::new();$customizations.XmlResolver=$null;$customizations.Load($reader)} finally {$reader.Dispose();$stream.Dispose()}
+        $assemblies=@($customizations.SelectNodes('//SolutionPluginAssemblies/PluginAssembly') | Where-Object {$_.GetAttribute('FullName') -match '^Northstar\.Lifecycle(?:,|$)'})
+        Assert-True ($assemblies.Count -eq 1) 'Exactly one Northstar.Lifecycle assembly declaration is required; schema-only ZIPs are rejected.'
+        $expected='Northstar.Lifecycle, Version=1.0.0.0, Culture=neutral, PublicKeyToken=0e4ef9779f1fdb9d'
+        Assert-True ($assemblies[0].GetAttribute('FullName') -ceq $expected) 'Unexpected lifecycle assembly manifest identity.'
+        $files=@($assemblies[0].SelectNodes('FileName'))
+        Assert-True ($files.Count -eq 1) 'Exactly one lifecycle assembly FileName is required.'
+        $file=[string]$files[0].InnerText
+        Assert-True ($file -cmatch '^/PluginAssemblies/[^/]+/[^/]+\.dll$' -and $file -notmatch '\\|(^|/)\.\.?(/|$)|:') 'Unsafe lifecycle assembly FileName.'
+        $entry=$zip.GetEntry($file.Substring(1))
+        Assert-True ($null -ne $entry -and $entry.Length -gt 0 -and $entry.Length -le 10485760) 'Declared lifecycle assembly entry missing or oversized.'
+        $memory=[IO.MemoryStream]::new();$stream=$entry.Open()
+        try {$stream.CopyTo($memory);$bytes=$memory.ToArray()} finally {$stream.Dispose();$memory.Dispose()}
+        Assert-True ((Read-SolutionAssemblyIdentity $bytes) -ceq $expected) 'Exported lifecycle binary identity differs from reviewed name/version/public-key token.'
+        return @{path=$entry.FullName;identity=$expected;sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()}
     } finally { $zip.Dispose() }
+}
+
+function Assert-TrainingSolution([string]$Path,$Policy) {
+    $null=Get-TrainingSolutionAssembly $Path $Policy
 }
 
 function Assert-SiteSource([string]$Path, $Policy) {
@@ -100,16 +136,11 @@ function New-ReleasePackage {
         $entries = @(Get-ChildItem -LiteralPath $stage -Recurse -File -Force | Sort-Object FullName | ForEach-Object {
             @{ path=[IO.Path]::GetRelativePath($stage,$_.FullName).Replace('\','/'); sha256=Get-Sha256 $_.FullName; bytes=$_.Length }
         })
-        $solutionArchive=[IO.Compression.ZipFile]::OpenRead((Join-Path $stage 'solution.zip'))
-        try {
-            $assemblyEntry=@($solutionArchive.Entries | Where-Object { [IO.Path]::GetFileName($_.FullName) -ceq 'Northstar.Lifecycle.dll' })[0]
-            $stream=$assemblyEntry.Open()
-            try { $sha=[Security.Cryptography.SHA256]::Create();try{$assemblyHash=[Convert]::ToHexString($sha.ComputeHash($stream)).ToLowerInvariant()}finally{$sha.Dispose()} } finally {$stream.Dispose()}
-        } finally {$solutionArchive.Dispose()}
+        $assembly=Get-TrainingSolutionAssembly (Join-Path $stage 'solution.zip') $policy
         $metadata = @{schemaVersion=1;sourceRevision=$SourceRevision;createdUtc=[DateTime]::UtcNow.ToString('o');
             tenantId=$policy.tenantId;environmentId=$policy.environmentId;websiteId=$policy.websiteId;
             modelVersion=2;pacVersion='2.9.3';solutionPackageType='Unmanaged';policySha256=Get-Sha256 $PolicyPath;files=$entries;
-            exportedAssemblySha256=$assemblyHash;
+            exportedAssemblySha256=$assembly.sha256;exportedAssemblyPath=$assembly.path;exportedAssemblyIdentity=$assembly.identity;
             assemblyProvenance='Exported actual Training assembly; source commit identifies reviewed pipeline/source state, not proof that CI built the exported binary.'}
         $metadata | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $stage 'release.json') -Encoding utf8
         $parent = Split-Path -Parent ([IO.Path]::GetFullPath($OutputPath))
@@ -160,7 +191,8 @@ function Expand-VerifiedRelease {
     }
     Assert-Profile (Join-Path $Destination 'site/deployment-profiles/training.deployment.yml') $policy
     $null = Assert-SiteSource (Join-Path $Destination 'site') $policy
-    Assert-TrainingSolution (Join-Path $Destination 'solution.zip') $policy
+    $assembly=Get-TrainingSolutionAssembly (Join-Path $Destination 'solution.zip') $policy
+    Assert-True ($release.exportedAssemblySha256 -ceq $assembly.sha256 -and $release.exportedAssemblyPath -ceq $assembly.path -and $release.exportedAssemblyIdentity -ceq $assembly.identity) 'Release assembly provenance differs from verified solution.'
     return $release
 }
 
