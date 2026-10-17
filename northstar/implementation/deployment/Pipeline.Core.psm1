@@ -196,9 +196,45 @@ function Expand-VerifiedRelease {
     return $release
 }
 
-function Invoke-PacChecked([string[]]$Arguments,[string]$PacPath='pac') {
+function Get-PacFailureClassification([string]$Text,[int]$ExitCode,[double]$ElapsedSeconds) {
+    $category='UNKNOWN'
+    if($Text -match '(?i)missing.*prv|privilege.*(?:missing|not.*held)|access.*denied|insufficient.*permission|does not have.*privilege|403|forbidden'){$category='AUTHORIZATION'}
+    elseif($Text -match '(?i)AADSTS|invalid_client|unauthorized_client|authentication.*fail|401|token.*(?:expired|invalid)'){$category='AUTHENTICATION'}
+    elseif($Text -match '(?i)timed?\s*out|timeout|time limit.*exceeded|TaskCanceledException'){$category='TIMEOUT_OR_CANCELLATION'}
+    elseif($Text -match '(?i)429|throttl|too many requests'){$category='THROTTLING'}
+    elseif($Text -match '(?i)name resolution|no such host|connection.*(?:refused|reset)|network.*unreachable|SSL|TLS'){$category='NETWORK_OR_TLS'}
+    elseif($Text -match '(?i)missing dependenc|dependency.*(?:missing|unresolved)|solution.*(?:not found|does not exist)'){$category='SOLUTION_OR_DEPENDENCY'}
+    $codes=@([regex]::Matches($Text,'(?i)(?<![0-9a-z])0x[0-9a-f]{8}(?![0-9a-z])') | ForEach-Object {$_.Value.ToLowerInvariant()} | Sort-Object -Unique | Select-Object -First 4)
+    # Never return raw text, identifiers, URLs, tokens, CLI arguments or paths.
+    return [ordered]@{category=$category;exitCode=$ExitCode;elapsedSeconds=[Math]::Round($ElapsedSeconds,1);errorCodes=$codes}
+}
+
+function Get-TrainingSolutionExportArguments($Policy,[string]$Path) {
+    return @('solution','export','--environment',$Policy.environmentUrl,'--name',$Policy.solutionUniqueName,'--path',$Path,'--async','--max-async-wait-time','10')
+}
+
+function Save-PacExportFailure([string[]]$Arguments,[string]$Text,[string]$Path) {
+    Assert-True ($Arguments.Count -ge 2 -and $Arguments[0] -ceq 'solution' -and $Arguments[1] -ceq 'export') 'Failure capture is limited to solution export; authentication output is forbidden.'
+    $temporaryRoot=if($env:RUNNER_TEMP){$env:RUNNER_TEMP}else{[IO.Path]::GetTempPath()}
+    $root=[IO.Path]::GetFullPath($temporaryRoot).TrimEnd([IO.Path]::DirectorySeparatorChar)+[IO.Path]::DirectorySeparatorChar
+    $full=[IO.Path]::GetFullPath($Path)
+    Assert-True ($full.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) 'Failure capture must remain under the private temporary root.'
+    Assert-True (-not (Test-Path -LiteralPath $full)) 'Failure capture already exists.'
+    $redacted=[regex]::Replace($Text,'(?i)Bearer\s+\S+','Bearer [REDACTED]')
+    $redacted=[regex]::Replace($redacted,'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+','[REDACTED JWT]')
+    $redacted=[regex]::Replace($redacted,'(?i)((?:client[_-]?secret|access[_-]?token|refresh[_-]?token|password)\s*[:=]\s*)\S+','$1[REDACTED]')
+    [IO.File]::WriteAllText($full,$redacted,[Text.UTF8Encoding]::new($false))
+}
+
+function Invoke-PacChecked([string[]]$Arguments,[string]$PacPath='pac',[string]$FailureOutputPath) {
+    $watch=[Diagnostics.Stopwatch]::StartNew()
     $output = @(& $PacPath @Arguments 2>&1 | ForEach-Object { [string]$_ })
-    Assert-True ($LASTEXITCODE -eq 0) ('PAC failed: '+($Arguments[0..([Math]::Min(1,$Arguments.Count-1))] -join ' '))
+    $exitCode=$LASTEXITCODE;$watch.Stop()
+    if($exitCode -ne 0){
+        if($FailureOutputPath){Save-PacExportFailure $Arguments ($output -join "`n") $FailureOutputPath}
+        $safe=Get-PacFailureClassification ($output -join "`n") $exitCode $watch.Elapsed.TotalSeconds
+        throw ('PAC failed: '+($Arguments[0..([Math]::Min(1,$Arguments.Count-1))] -join ' ')+' '+($safe | ConvertTo-Json -Compress))
+    }
     return ($output -join "`n")
 }
 

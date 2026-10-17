@@ -81,7 +81,7 @@ try {
         Assert-True (-not (Test-Path -LiteralPath $OutputPath)) 'Export destination must be new.'
         New-Item -ItemType Directory -Path $OutputPath | Out-Null
         $solution=Join-Path $OutputPath 'solution.zip'
-        $null=Invoke-PacChecked @('solution','export','--environment',$policy.environmentUrl,'--name',$policy.solutionUniqueName,'--path',$solution) $PacPath
+        $null=Invoke-PacChecked (Get-TrainingSolutionExportArguments $policy $solution) $PacPath -FailureOutputPath (Join-Path $evidence 'pac-solution-export-failure.txt')
         $null=Invoke-PacChecked @('pages','download','--environment',$policy.environmentUrl,'--path',(Join-Path $OutputPath 'site-export'),'--webSiteId',$policy.websiteId,'--modelVersion','2') $PacPath
         Assert-TrainingSolution $solution $policy
         @{status='EXPORTED';path=$OutputPath;solutionSha256=Get-Sha256 $solution;target=$identity} | ConvertTo-Json -Depth 6

@@ -87,6 +87,37 @@ Check 'Manifest identity cannot disguise unrelated binary' {
 }
 
 Check 'Approved Training target accepted' { $null=Read-TrainingPolicy $policyPath }
+foreach($case in @(
+    @{text='Request timed out';category='TIMEOUT_OR_CANCELLATION'},
+    @{text='Missing prvExportCustomization privilege 0x80040220';category='AUTHORIZATION'},
+    @{text='AADSTS invalid_client';category='AUTHENTICATION'},
+    @{text='429 too many requests';category='THROTTLING'},
+    @{text='TLS connection reset';category='NETWORK_OR_TLS'},
+    @{text='Solution does not exist';category='SOLUTION_OR_DEPENDENCY'},
+    @{text='Unexpected backend failure';category='UNKNOWN'}
+)) {
+    Check ('PAC error classification '+$case.category) {
+        $safe=Get-PacFailureClassification ($case.text+' password=FAKE_SECRET https://private.invalid/ Bearer FAKE_TOKEN') 7 12.34
+        Assert-True ($safe.category -ceq $case.category -and $safe.exitCode -eq 7 -and $safe.elapsedSeconds -eq 12.3) 'Wrong safe classification.'
+        Assert-True (($safe | ConvertTo-Json -Compress) -notmatch 'FAKE_SECRET|FAKE_TOKEN|private.invalid') 'Raw diagnostic leaked.'
+    }
+}
+Check 'Solution export uses bounded async with exact target and no retry flag' {
+    $arguments=Get-TrainingSolutionExportArguments $policy 'private-output.zip'
+    Assert-True ($arguments -contains '--async' -and $arguments[-2] -ceq '--max-async-wait-time' -and $arguments[-1] -ceq '10' -and $arguments[3] -ceq $policy.environmentUrl -and $arguments[5] -ceq $policy.solutionUniqueName) 'Incorrect export execution mode or target.'
+}
+Check 'Private failure capture redacts credentials and forbids auth commands' {
+    $captureRoot=if($env:RUNNER_TEMP){$env:RUNNER_TEMP}else{[IO.Path]::GetTempPath()}
+    $capture=Join-Path $captureRoot ('northstar-test-'+[guid]::NewGuid().ToString('N')+'.txt')
+    try {
+        Save-PacExportFailure @('solution','export') 'Backend detail Bearer FAKE_TOKEN password=FAKE_SECRET eyJtest.payload.signature' $capture
+        $content=Get-Content -LiteralPath $capture -Raw
+        Assert-True ($content -match 'Backend detail' -and $content -notmatch 'FAKE_TOKEN|FAKE_SECRET|eyJtest') 'Capture did not redact sensitive patterns.'
+        Reject {Save-PacExportFailure @('auth','create') 'FORBIDDEN AUTH OUTPUT' ($capture+'.auth')} 'authentication output is forbidden'
+        Assert-True (-not (Test-Path ($capture+'.auth'))) 'Authentication capture wrote a file.'
+    } finally {if(Test-Path -LiteralPath $capture){Remove-Item -LiteralPath $capture -Force}}
+}
+Check 'Private failure capture rejects repository paths' {Reject {Save-PacExportFailure @('solution','export') 'private detail' (Join-Path $work 'forbidden.txt')} 'private temporary root'}
 $siteRow="$($policy.websiteId) $($policy.websiteName) 2.0 $(([uri]$policy.runtimeUrl).DnsSafeHost) Active"
 Check 'Bounded Dataverse query targets exact enhanced website' {
     [xml]$query=New-SiteTargetFetchXml $policy

@@ -188,3 +188,30 @@ Actions are pinned to commits in their official repositories. PAC is pinned to
 2.9.3. Review tool upgrades as source changes instead of floating action tags.
 
 The assembly identity check inspects metadata without executing the DLL. It does not verify a strong-name signature or prove source-to-binary correspondence. Offline packaging tests use a trivial delay-signed fixture built with the PUBLIC key only; they publish no private signing key. The actual PAC export may name the file NorthstarLifecycle.dll inside a generated PluginAssemblies directory; filenames are not assembly identities.
+
+## Bounded export and failure evidence
+
+The third approved hosted Export passed OIDC, organization identity and every
+Dataverse website target check, then the synchronous solution-export command
+failed after approximately five minutes. Its raw error had been discarded, so
+neither a timeout nor a missing privilege was established. Export now uses the
+documented asynchronous mode with an explicit ten-minute poll limit inside the
+twenty-minute job; no automatic retry or permission increase is included. This
+mode change is not a claim that the unknown failure cause has been fixed.
+
+Failures publish only a fixed category, exit code, elapsed time and up to four
+hexadecimal error codes. Only failed solution-export output may be captured
+privately under the runner temporary directory; authentication output and CLI
+arguments are never captured. Common bearer/JWT/password/token patterns are
+redacted as defense in depth, not a guarantee that arbitrary diagnostics are
+non-sensitive. The remaining diagnostic text is encrypted before upload and
+private temporary files are removed in finally (best effort, not secure erase).
+The separate northstar-export-diagnostic artifact retains only ciphertext and
+its safe digest/source summary for seven days. Its authenticated purpose is
+PacExportDiagnostic, distinct from Release: release deployment cannot decrypt
+or consume it. Decrypt only into an approved private temporary directory with
+the existing protected artifact key, exact source SHA and ciphertext SHA.
+
+A failed async operation may continue on the service. Inspect its private
+failure evidence and platform job state before any separately reviewed retry;
+never infer that a client timeout cancelled the backend operation.

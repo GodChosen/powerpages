@@ -12,17 +12,23 @@ function Get-ArtifactKey([string]$KeyBase64) {
     if($key.Length -ne 32){throw 'Artifact key must contain exactly 32 bytes.'}
     return ,$key
 }
-function Get-ArtifactContext([string]$Repository,[string]$Environment,[string]$SourceRevision) {
+function Get-ArtifactFormat([ValidateSet('Release','PacExportDiagnostic')][string]$Purpose='Release') {
+    if($Purpose -ceq 'Release'){return 'northstar-release-aes256gcm-v1'}
+    return 'northstar-pac-export-diagnostic-aes256gcm-v1'
+}
+function Get-ArtifactContext([string]$Repository,[string]$Environment,[string]$SourceRevision,[string]$Purpose='Release') {
     if($Repository -cne 'GodChosen/powerpages' -or $Environment -cne 'northstar-training'){throw 'Unapproved artifact repository/environment context.'}
-    return [Text.Encoding]::UTF8.GetBytes("northstar-release-aes256gcm-v1`n$Repository`n$Environment`n$SourceRevision")
+    $format=Get-ArtifactFormat $Purpose
+    return [Text.Encoding]::UTF8.GetBytes("$format`n$Repository`n$Environment`n$SourceRevision")
 }
 function Protect-ReleaseArtifact {
     param([string]$InputPath,[string]$OutputPath,[string]$WorkingRoot,
         [string]$KeyBase64,[string]$SourceRevision,
-        [string]$Repository='GodChosen/powerpages',[string]$Environment='northstar-training')
+        [string]$Repository='GodChosen/powerpages',[string]$Environment='northstar-training',
+        [ValidateSet('Release','PacExportDiagnostic')][string]$Purpose='Release')
     $output=Assert-CryptoPath $OutputPath $WorkingRoot
     if($SourceRevision -notmatch '^[0-9a-f]{40}$'){throw 'Full source commit SHA required.'}
-    $aad=Get-ArtifactContext $Repository $Environment $SourceRevision
+    $aad=Get-ArtifactContext $Repository $Environment $SourceRevision $Purpose
     $key=Get-ArtifactKey $KeyBase64
     $plain=[IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $InputPath).Path)
     $cipher=[byte[]]::new($plain.Length)
@@ -31,7 +37,7 @@ function Protect-ReleaseArtifact {
     $aes=[Security.Cryptography.AesGcm]::new($key,16)
     try {
         $aes.Encrypt($nonce,$plain,$cipher,$tag,$aad)
-        $envelope=@{format='northstar-release-aes256gcm-v1';repository=$Repository;
+        $envelope=@{format=(Get-ArtifactFormat $Purpose);repository=$Repository;
             environment=$Environment;sourceRevision=$SourceRevision;
             nonce=[Convert]::ToBase64String($nonce);tag=[Convert]::ToBase64String($tag);
             ciphertext=[Convert]::ToBase64String($cipher)}
@@ -44,16 +50,17 @@ function Protect-ReleaseArtifact {
 function Unprotect-ReleaseArtifact {
     param([string]$InputPath,[string]$ExpectedCipherSha256,[string]$OutputPath,
         [string]$WorkingRoot,[string]$KeyBase64,[string]$ExpectedSourceRevision,
-        [string]$Repository='GodChosen/powerpages',[string]$Environment='northstar-training')
+        [string]$Repository='GodChosen/powerpages',[string]$Environment='northstar-training',
+        [ValidateSet('Release','PacExportDiagnostic')][string]$Purpose='Release')
     if($ExpectedSourceRevision -notmatch '^[0-9a-f]{40}$'){throw 'Expected source revision must be a full lowercase 40-character hexadecimal commit SHA.'}
     $output=Assert-CryptoPath $OutputPath $WorkingRoot
     if($ExpectedCipherSha256 -notmatch '^[0-9a-f]{64}$' -or
         (Get-FileHash -LiteralPath $InputPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $ExpectedCipherSha256){throw 'Encrypted artifact SHA-256 mismatch.'}
     $envelope=Get-Content -LiteralPath $InputPath -Raw | ConvertFrom-Json
-    if($envelope.format -cne 'northstar-release-aes256gcm-v1' -or
+    if($envelope.format -cne (Get-ArtifactFormat $Purpose) -or
         $envelope.repository -cne $Repository -or $envelope.environment -cne $Environment -or
         $envelope.sourceRevision -cne $ExpectedSourceRevision){throw 'Encrypted artifact context/source mismatch.'}
-    $aad=Get-ArtifactContext $Repository $Environment $ExpectedSourceRevision
+    $aad=Get-ArtifactContext $Repository $Environment $ExpectedSourceRevision $Purpose
     $key=Get-ArtifactKey $KeyBase64
     $nonce=[Convert]::FromBase64String($envelope.nonce)
     $tag=[Convert]::FromBase64String($envelope.tag)
