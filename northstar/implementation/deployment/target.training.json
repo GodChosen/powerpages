@@ -15,7 +15,7 @@
   "deploymentProfileSha256": "a2c8587368b31e7d95d4ae5edfb78e90caf0e4f0b016999b65e4c495de67f763",
   "solutionUniqueName": "NorthstarHandbookValidation",
   "approvedRepository": "GodChosen/powerpages",
-  "applicationId": null,
+  "applicationId": "0095e340-8666-4f41-b29f-730facbf6fb5",
   "githubEnvironment": "northstar-training",
   "rollbackScope": "Rollback replays only the verified prior site configuration. Managed solution changes require a reviewed forward-fix release; this is not business-data restoration, a managed-solution downgrade, or removal of newly introduced components.",
   "solutionPackageType": "Unmanaged",

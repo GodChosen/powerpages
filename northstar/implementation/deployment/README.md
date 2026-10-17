@@ -150,8 +150,12 @@ Before activating Export/Deploy, obtain explicit approval for:
    Do not print the value or commit it. This encrypts release artifacts; PAC
    authenticates through OIDC and requires no client-secret GitHub secret.
 
-Record the approved application's nonsecret client ID in `target.training.json`
-and regenerate packages because that policy hash changes. Do not create the
+The approved Training deployment application is `NorthstarHandbookGitHubTraining`,
+client ID `0095e340-8666-4f41-b29f-730facbf6fb5`. Its nonsecret ID is pinned in
+`target.training.json`; its Training application user was assigned System
+Customizer under explicit approval. This assignment still requires the actual
+OIDC/export/import permission tests; no broader role is assumed. Regenerate
+packages whenever the policy hash changes. Do not create the
 application, federated credential, role or secret merely by merging a PR.
 
 After registration/runtime tests and these grants, dispatch Export from master
