@@ -1,0 +1,8 @@
+.pipeline/
+test-output/
+*.user
+remote-checkout/
+.tools/
+crypto-test-results.json
+test-results.json
+protection-test-results.json

@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+**/artifacts/
+**/evidence/
+**/*.snk
+**/*.pfx
+**/*.p12
+**/*.pem
+**/*.key
+**/*.dll
+**/*.zip
+**/*.user
