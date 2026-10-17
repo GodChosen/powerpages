@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{e12a0c6a-ea33-4fec-bc09-0676a2741f30}</WebResourceId>
+  <Name>dexp_/dependency/style.css</Name>
+  <DisplayName>Dependency Explorer style.css</DisplayName>
+  <WebResourceType>2</WebResourceType>
+  <IntroducedVersion>1.1.0.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/dexp_dependencystylecssE12A0C6A-EA33-4FEC-BC09-0676A2741F30</FileName>
+</WebResource>

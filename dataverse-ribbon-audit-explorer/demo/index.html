@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ribbon and Command Audit</title>
+    <link rel="stylesheet" href="../src/style.css?v=1.5.1" />
+    <script src="fixture-transport.js"></script>
+    <link rel="stylesheet" href="demo.css" />
+  </head>
+  <body>
+    <aside class="demo-banner">
+      <strong>SYNTHETIC DEMO</strong> · Local fixtures only. No Dataverse connection. Findings are
+      illustrative, not a real customer environment.
+    </aside>
+    <h1>Ribbon and command audit</h1>
+    <p>
+      Discover unmanaged ribbon and command creations and overrides across all tables and the
+      Application Ribbon. Custom pages remain available.
+    </p>
+    <button id="scan">Scan / rescan</button><button id="cancel" disabled>Cancel</button
+    ><button id="export" disabled>Export table CSV</button>
+    <p id="status" role="status">Loading — source 1.5.1</p>
+    <fieldset>
+      <legend>Filter results</legend>
+      <label>Search <input id="search" type="search" /></label
+      ><label
+        >Type
+        <select id="kind">
+          <option value="">All types</option>
+          <option>Classic / legacy button</option>
+          <option>Classic command</option>
+          <option>Classic rule</option>
+          <option>Classic hide action</option>
+          <option>Ribbon audit gap</option>
+          <option>Modern command</option>
+          <option>Custom page</option>
+        </select></label
+      ><label
+        >Solution
+        <select id="solution">
+          <option value="">All solutions</option>
+        </select></label
+      ><label
+        >Origin
+        <select id="origin">
+          <option value="">All origins</option>
+          <option>Custom</option>
+          <option>Out of the box</option>
+          <option>Not verified</option>
+        </select></label
+      ><label
+        >Unmanaged audit
+        <select id="audit">
+          <option value="">All findings</option>
+          <option value="unmanaged">Unmanaged evidence found</option>
+          <option>Unmanaged creation candidate</option>
+          <option>Unmanaged override</option>
+          <option>Unmanaged duplicate</option>
+          <option>Unmanaged hide action</option>
+          <option>Affected by unmanaged command/rule</option>
+          <option>Unmanaged layer over managed component</option>
+          <option>Unmanaged ribbon parent — review required</option>
+          <option>Not verified</option>
+          <option>No unmanaged definition observed</option>
+        </select></label
+      >
+    </fieldset>
+    <p>
+      Solution names show recorded membership or the returned definition layer, not exclusive
+      ownership. Dependencies are metadata references; platform scripts are listed as external
+      references. Select “Load platform dependencies” for direct dependencies or “Load layers” for
+      the available ordered stack. Definition evidence is not a complete layer stack.
+    </p>
+    <p>
+      Custom includes unmanaged customizations. Out of the box requires a managed definition from a
+      recognized Microsoft publisher. Other origins remain Not verified.
+    </p>
+    <details>
+      <summary>Audit coverage and interpretation</summary>
+      <button id="exportcoverage" disabled>Export table coverage CSV</button>
+      <p id="coverage">Not scanned.</p>
+      <p>
+        Creation candidates are unmanaged definitions without a returned managed baseline; they are
+        not confirmed new creations. Overrides require the same item ID and kind in the same table
+        context. An OOB button may be affected by an unmanaged command or rule. Solution membership
+        is not unmanaged-layer evidence. This audit does not remove customizations.
+      </p>
+    </details>
+    <p id="counts" aria-live="polite"></p>
+    <div id="list"></div>
+    <nav id="pages" aria-label="Result pages"></nav>
+    <details id="notes" hidden>
+      <summary id="notestitle">Scan notes</summary>
+      <ul id="notelist"></ul>
+    </details>
+    <script src="../src/core.js?v=1.5.1"></script>
+    <script src="../src/transport.js?v=1.5.1"></script>
+    <script src="../src/commands.js?v=1.5.1"></script>
+    <script src="../src/app.js?v=1.5.1"></script>
+  </body>
+</html>

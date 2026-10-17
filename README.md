@@ -8,6 +8,7 @@ Microsoft Power Pages is a secure, enterprise-grade, low-code SaaS platform for 
 
 ## Repository Structure
 
+- **/dataverse-ribbon-audit-explorer/**: [Dataverse Ribbon and Command Audit Explorer](dataverse-ribbon-audit-explorer/README.md), a community developer preview for investigating unmanaged command metadata.
 - **/osazeedemo/**: Contains all the Power Pages-related files and configurations.
 - **/README.md**: This file provides an overview of the repository.
 
@@ -46,7 +47,7 @@ Contributions are welcome! Feel free to submit issues or pull requests to improv
 
 ## License
 
-This repository is licensed under the [MIT License](LICENSE).
+Licensing is folder-specific. The [Dataverse Ribbon and Command Audit Explorer](dataverse-ribbon-audit-explorer/LICENSE) is MIT-licensed. Consult each project for its terms; this does not grant a new license to unrelated folders.
 
 ---
 

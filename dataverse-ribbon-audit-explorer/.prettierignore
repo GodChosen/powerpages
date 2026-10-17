@@ -1,0 +1,5 @@
+node_modules
+artifacts
+solution
+releases/*.zip
+assets/*.png

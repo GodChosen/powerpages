@@ -1,0 +1,40 @@
+{
+  "name": "dataverse-ribbon-audit-explorer",
+  "version": "1.5.1",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node tests/core.test.cjs && node tests/extensions.test.cjs && node tests/app.test.cjs && node tests/ribbon-zip.test.cjs && node tests/results.test.cjs && node tests/audit.test.cjs && node tests/audit-app.test.cjs",
+    "check": "node scripts/check-syntax.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "demo": "node scripts/serve-demo.mjs",
+    "docs:check": "node scripts/check-docs.mjs",
+    "release:verify": "node scripts/verify-release.mjs",
+    "test:demo": "node tests/demo.test.cjs",
+    "validate": "node scripts/validate-local.mjs"
+  },
+  "keywords": [],
+  "author": "Osazee Odigie (https://github.com/GodChosen)",
+  "description": "Browser-based Dataverse metadata review for unmanaged ribbon and command evidence.",
+  "devDependencies": {
+    "jsdom": "29.1.1",
+    "prettier": "3.9.10",
+    "fflate": "0.8.3"
+  },
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GodChosen/powerpages.git",
+    "directory": "dataverse-ribbon-audit-explorer"
+  },
+  "homepage": "https://github.com/GodChosen/powerpages/tree/master/dataverse-ribbon-audit-explorer",
+  "bugs": {
+    "url": "https://github.com/GodChosen/powerpages/issues"
+  }
+}

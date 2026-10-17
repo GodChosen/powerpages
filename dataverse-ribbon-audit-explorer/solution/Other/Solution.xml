@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="9.2.26094.154" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" OrganizationVersion="9.2.26094.154" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26094.00154">
+  <SolutionManifest>
+    <UniqueName>DataverseDependencyExplorer</UniqueName>
+    <LocalizedNames>
+      <LocalizedName description="Dataverse Ribbon and Command Audit Explorer" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions />
+    <Version>1.5.1.0</Version>
+    <Managed>0</Managed>
+    <Publisher>
+      <UniqueName>DependencyExplorerPublisher</UniqueName>
+      <LocalizedNames>
+        <LocalizedName description="Dependency Explorer" languagecode="1033" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description description="Publisher for the dedicated Dataverse Dependency Explorer metadata tool." languagecode="1033" />
+      </Descriptions>
+      <EMailAddress xsi:nil="true" />
+      <SupportingWebsiteUrl xsi:nil="true" />
+      <CustomizationPrefix>dexp</CustomizationPrefix>
+      <CustomizationOptionValuePrefix>34905</CustomizationOptionValuePrefix>
+      <Addresses>
+        <Address>
+          <AddressNumber>1</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City xsi:nil="true" />
+          <County xsi:nil="true" />
+          <Country xsi:nil="true" />
+          <Fax xsi:nil="true" />
+          <FreightTermsCode xsi:nil="true" />
+          <ImportSequenceNumber xsi:nil="true" />
+          <Latitude xsi:nil="true" />
+          <Line1 xsi:nil="true" />
+          <Line2 xsi:nil="true" />
+          <Line3 xsi:nil="true" />
+          <Longitude xsi:nil="true" />
+          <Name xsi:nil="true" />
+          <PostalCode xsi:nil="true" />
+          <PostOfficeBox xsi:nil="true" />
+          <PrimaryContactName xsi:nil="true" />
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince xsi:nil="true" />
+          <Telephone1 xsi:nil="true" />
+          <Telephone2 xsi:nil="true" />
+          <Telephone3 xsi:nil="true" />
+          <TimeZoneRuleVersionNumber xsi:nil="true" />
+          <UPSZone xsi:nil="true" />
+          <UTCOffset xsi:nil="true" />
+          <UTCConversionTimeZoneCode xsi:nil="true" />
+        </Address>
+        <Address>
+          <AddressNumber>2</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City xsi:nil="true" />
+          <County xsi:nil="true" />
+          <Country xsi:nil="true" />
+          <Fax xsi:nil="true" />
+          <FreightTermsCode xsi:nil="true" />
+          <ImportSequenceNumber xsi:nil="true" />
+          <Latitude xsi:nil="true" />
+          <Line1 xsi:nil="true" />
+          <Line2 xsi:nil="true" />
+          <Line3 xsi:nil="true" />
+          <Longitude xsi:nil="true" />
+          <Name xsi:nil="true" />
+          <PostalCode xsi:nil="true" />
+          <PostOfficeBox xsi:nil="true" />
+          <PrimaryContactName xsi:nil="true" />
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince xsi:nil="true" />
+          <Telephone1 xsi:nil="true" />
+          <Telephone2 xsi:nil="true" />
+          <Telephone3 xsi:nil="true" />
+          <TimeZoneRuleVersionNumber xsi:nil="true" />
+          <UPSZone xsi:nil="true" />
+          <UTCOffset xsi:nil="true" />
+          <UTCConversionTimeZoneCode xsi:nil="true" />
+        </Address>
+      </Addresses>
+    </Publisher>
+    <RootComponents>
+      <RootComponent type="61" schemaName="dexp_/dependency/app.js" behavior="0" />
+      <RootComponent type="61" schemaName="dexp_/dependency/commands.js" behavior="0" />
+      <RootComponent type="61" schemaName="dexp_/dependency/core.js" behavior="0" />
+      <RootComponent type="61" schemaName="dexp_/dependency/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="dexp_/dependency/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="dexp_/dependency/transport.js" behavior="0" />
+      <RootComponent type="62" schemaName="dexp_DataverseDependencyExplorer" behavior="0" />
+      <RootComponent type="80" schemaName="dexp_DataverseDependencyExplorer" behavior="0" />
+    </RootComponents>
+  </SolutionManifest>
+</ImportExportXml>

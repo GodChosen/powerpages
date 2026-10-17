@@ -1,0 +1,43 @@
+name: Ribbon audit explorer
+
+on:
+  pull_request:
+    paths:
+      - 'dataverse-ribbon-audit-explorer/**'
+      - '.github/workflows/ribbon-audit.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'dataverse-ribbon-audit-explorer/**'
+      - '.github/workflows/ribbon-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [22, 24]
+    defaults:
+      run:
+        working-directory: dataverse-ribbon-audit-explorer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: dataverse-ribbon-audit-explorer/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run test:demo
+      - run: npm run docs:check
+      - run: npm run release:verify
+      - run: npm run format:check
