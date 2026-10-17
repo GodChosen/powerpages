@@ -15,7 +15,7 @@ does not claim that its DLL was deployed to Dataverse.
 
 **Export** is a manually dispatched, protected OIDC job. It exports the actual
 unmanaged `NorthstarHandbookValidation` solution and model-2 site from Training,
-requires the registered `Northstar.Lifecycle.dll` to be present, records its
+resolves the registered assembly through its exact `customizations.xml` declaration and safe ZIP path, verifies its name/version/public-key token, records its
 SHA-256, packages per-file digests and the approved policy/source revision, and
 encrypts the entire release before uploading an artifact. An export containing
 only schema is rejected. The source commit identifies reviewed pipeline/source
@@ -176,3 +176,5 @@ CSRF and post-upload tests. Import/upload success is not runtime acceptance.
 
 Actions are pinned to commits in their official repositories. PAC is pinned to
 2.9.3. Review tool upgrades as source changes instead of floating action tags.
+
+The assembly identity check inspects metadata without executing the DLL. It does not verify a strong-name signature or prove source-to-binary correspondence. Offline packaging tests use a trivial delay-signed fixture built with the PUBLIC key only; they publish no private signing key. The actual PAC export may name the file NorthstarLifecycle.dll inside a generated PluginAssemblies directory; filenames are not assembly identities.

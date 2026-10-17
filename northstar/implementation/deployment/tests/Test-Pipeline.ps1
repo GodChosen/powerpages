@@ -23,15 +23,68 @@ New-Item -ItemType Directory -Path (Join-Path $site '.portalconfig') -Force | Ou
 '{}' | Set-Content (Join-Path $site '.portalconfig/manifest.yml')
 '<h1>Offline fixture</h1>' | Set-Content (Join-Path $site 'fixture.html')
 $solutionFolder=Join-Path $work 'solution-source'
-New-Item -ItemType Directory -Path (Join-Path $solutionFolder 'PluginAssemblies') -Force | Out-Null
+$assemblyRelative='PluginAssemblies/NorthstarLifecycle-00000000-0000-0000-0000-000000000001/NorthstarLifecycle.dll'
+New-Item -ItemType Directory -Path (Split-Path (Join-Path $solutionFolder $assemblyRelative) -Parent) -Force | Out-Null
 "<ImportExportXml><SolutionManifest><UniqueName>$($policy.solutionUniqueName)</UniqueName><Managed>0</Managed></SolutionManifest></ImportExportXml>" | Set-Content (Join-Path $solutionFolder 'solution.xml')
-'<ImportExportXml />' | Set-Content (Join-Path $solutionFolder 'customizations.xml')
-'OFFLINE TEST FIXTURE, NOT AN ASSEMBLY' | Set-Content (Join-Path $solutionFolder 'PluginAssemblies/Northstar.Lifecycle.dll')
+$identity='Northstar.Lifecycle, Version=1.0.0.0, Culture=neutral, PublicKeyToken=0e4ef9779f1fdb9d'
+$customization="<ImportExportXml><SolutionPluginAssemblies><PluginAssembly FullName='$identity'><FileName>/$assemblyRelative</FileName></PluginAssembly></SolutionPluginAssemblies></ImportExportXml>"
+$customization | Set-Content (Join-Path $solutionFolder 'customizations.xml')
+# PUBLIC key only. This intentionally delay-signed, trivial fixture proves identity
+# parsing, not signature verification or correspondence to registered source.
+$publicKey='00240000048000001401000006020000002400005253413100080000010001006DECC3F7BDFE81B2FC44B43CFF5D3F03DC0892C4B007EFD3670237C8AEB72330B749202B1B4A6F7B77CB492298B62CDFCFC62137C62135662A718603A7435143F21F9501B3B518A6E3BE73D564A04FA35A06D7026C6B7B061465DFB481DDAB118BE9FB0603CA891D3817F39CF12F56A22BC726E2B16B7B330A278711A0E513D642F83FCAABEB2BF40CF9433AC858DA4610417FFB6776318004FED6FE93B47718DEC444EC03F7C4544630C412B53A80009C6EB9A66836BBFC85F973B17499877297F899A33BC344F8C0DDA43E9D6568E26A4986CDAC496CC4FCF274A2A360C234388690AE035B5364666788DCCF5503EDE52109DF553258D2AB3BAD1A9794F8A7'
+$fixture=Join-Path $work 'assembly-fixture';New-Item -ItemType Directory -Path $fixture | Out-Null
+[IO.File]::WriteAllBytes((Join-Path $fixture 'public-key.bin'),[Convert]::FromHexString($publicKey))
+'<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework><AssemblyName>Northstar.Lifecycle</AssemblyName><AssemblyVersion>1.0.0.0</AssemblyVersion><SignAssembly>true</SignAssembly><DelaySign>true</DelaySign><AssemblyOriginatorKeyFile>public-key.bin</AssemblyOriginatorKeyFile></PropertyGroup></Project>' | Set-Content (Join-Path $fixture 'Fixture.csproj')
+'public sealed class OfflineIdentityFixture {}' | Set-Content (Join-Path $fixture 'Fixture.cs')
+& dotnet build (Join-Path $fixture 'Fixture.csproj') -o (Join-Path $fixture 'out') --nologo | Out-Null
+Assert-True ($LASTEXITCODE -eq 0) 'Public-key-only fixture compilation failed.'
+Copy-Item -LiteralPath (Join-Path $fixture 'out/Northstar.Lifecycle.dll') -Destination (Join-Path $solutionFolder $assemblyRelative)
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $managed=Join-Path $work 'solution.zip'
 [IO.Compression.ZipFile]::CreateFromDirectory($solutionFolder,$managed)
 $artifact=Join-Path $work 'release.zip'
 $revision='1'*40
+
+function New-ChangedSolution([string]$Name,[scriptblock]$Change){
+    $path=Join-Path $work ('manifest-'+$Name+'.zip');Copy-Item -LiteralPath $managed -Destination $path
+    $zip=[IO.Compression.ZipFile]::Open($path,[IO.Compression.ZipArchiveMode]::Update)
+    try {& $Change $zip} finally {$zip.Dispose()}
+    return $path
+}
+function Set-Customization($Zip,[string]$Text){
+    $Zip.GetEntry('customizations.xml').Delete();$entry=$Zip.CreateEntry('customizations.xml')
+    $writer=[IO.StreamWriter]::new($entry.Open());try{$writer.Write($Text)}finally{$writer.Dispose()}
+}
+Check 'Actual PAC manifest resolves renamed nested assembly and binary identity' {
+    $assembly=Get-TrainingSolutionAssembly $managed $policy
+    Assert-True ($assembly.path -ceq $assemblyRelative -and $assembly.identity -ceq $identity) 'Manifest resolution failed.'
+}
+foreach($case in @(
+    @{name='traversal';text=$customization.Replace('/'+$assemblyRelative,'/PluginAssemblies/../NorthstarLifecycle.dll');error='Unsafe lifecycle'},
+    @{name='backslash';text=$customization.Replace('/'+$assemblyRelative,'/PluginAssemblies/folder\NorthstarLifecycle.dll');error='Unsafe lifecycle'},
+    @{name='missing';text=$customization.Replace('NorthstarLifecycle.dll','Missing.dll');error='entry missing'},
+    @{name='wrong-token';text=$customization.Replace('0e4ef9779f1fdb9d','0000000000000000');error='manifest identity'},
+    @{name='wrong-version';text=$customization.Replace('1.0.0.0','2.0.0.0');error='manifest identity'},
+    @{name='duplicate-declaration';text=$customization.Replace('</SolutionPluginAssemblies>',"<PluginAssembly FullName='$identity'><FileName>/$assemblyRelative</FileName></PluginAssembly></SolutionPluginAssemblies>");error='Exactly one Northstar'},
+    @{name='schema-only';text='<ImportExportXml />';error='Exactly one Northstar'}
+)){
+    Check ('Reject malformed solution '+$case.name) {
+        $bad=New-ChangedSolution $case.name {param($zip) Set-Customization $zip $case.text}
+        Reject {Assert-TrainingSolution $bad $policy} $case.error
+    }
+}
+Check 'Duplicate ZIP path rejected before identity selection' {
+    $bad=New-ChangedSolution 'duplicate-path' {param($zip) $null=$zip.CreateEntry($assemblyRelative)}
+    Reject {Assert-TrainingSolution $bad $policy} 'Duplicate solution'
+}
+Check 'Manifest identity cannot disguise unrelated binary' {
+    $bad=New-ChangedSolution 'wrong-binary' {param($zip)
+        $zip.GetEntry($assemblyRelative).Delete();$entry=$zip.CreateEntry($assemblyRelative)
+        $input=[IO.File]::OpenRead([Uri].Assembly.Location);$output=$entry.Open()
+        try{$input.CopyTo($output)}finally{$input.Dispose();$output.Dispose()}
+    }
+    Reject {Assert-TrainingSolution $bad $policy} 'binary identity'
+}
 
 Check 'Approved Training target accepted' { $null=Read-TrainingPolicy $policyPath }
 Check 'Wrong environment is rejected before authentication' {
