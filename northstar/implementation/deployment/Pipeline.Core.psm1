@@ -202,6 +202,28 @@ function Invoke-PacChecked([string[]]$Arguments,[string]$PacPath='pac') {
     return ($output -join "`n")
 }
 
+function Assert-PacWebsiteListing([string]$Text,$Policy) {
+    # PAC 2.9.3 exposes a text table, not a JSON list option. Strip terminal
+    # presentation and permit wrapped rows, while checking every identity field.
+    $clean=[regex]::Replace($Text,'\x1B\[[0-?]*[ -/]*[@-~]','')
+    $rows=@([regex]::Matches($clean,'(?ms)^\s*\[\d+\]\s+.*?(?=^\s*\[\d+\]\s+|\z)'))
+    $selected=@($rows | Where-Object {$_.Value -match ('(?<![0-9a-f-])'+[regex]::Escape($Policy.websiteId)+'(?![0-9a-f-])')})
+    Assert-True ($selected.Count -eq 1) 'Approved website missing or ambiguous.'
+    $row=($selected[0].Value -replace '\s+',' ').Trim()
+    $guid='[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}'
+    $diagnostic=[ordered]@{check='PAC website preflight';websiteMatched=($row.Contains($Policy.websiteId));portalMatched=($row.Contains($Policy.portalId));nameMatched=($row.Contains($Policy.websiteName));runtimeUrlMatched=($row.Contains($Policy.runtimeUrl));enhancedMatched=($row -match '(?:^| )Enhanced(?: |$)');guidCount=[regex]::Matches($row,$guid).Count;rowLength=$row.Length}
+    # Fixed booleans/counts only; never publish a raw PAC listing or tenant values.
+    Write-Host ($diagnostic | ConvertTo-Json -Compress)
+    $pattern='^\[\d+\] (?<website>'+ $guid +') (?<portal>'+ $guid +') (?<name>.+?) (?<url>https://\S+) (?<model>Enhanced|Standard) (?<spa>Yes|No) (?<active>Yes|No)$'
+    $match=[regex]::Match($row,$pattern)
+    Assert-True ($match.Success) 'PAC website row format is incomplete or unsupported; no target check was bypassed.'
+    $expected=@{website=$Policy.websiteId;portal=$Policy.portalId;name=$Policy.websiteName;url=$Policy.runtimeUrl;model='Enhanced';active='Yes'}
+    foreach($key in $expected.Keys){
+        Assert-True ($match.Groups[$key].Value -ceq $expected[$key]) ('Live website identity/model mismatch: '+$key+'.')
+    }
+    return @{websiteMatched=$true;portalMatched=$true;nameMatched=$true;runtimeUrlMatched=$true;model='Enhanced';active=$true}
+}
+
 function Assert-LiveTrainingTarget($Policy,[string]$PacPath='pac') {
     $version = Invoke-PacChecked @('help') $PacPath
     Assert-True ($version -match 'Version:\s+2\.9\.3(?:\+|\s)') 'Wrong installed PAC version.'
@@ -213,11 +235,7 @@ function Assert-LiveTrainingTarget($Policy,[string]$PacPath='pac') {
         Assert-True ($org -match [regex]::Escape($expected)) 'Live organization does not match approved Training target.'
     }
     $sites = Invoke-PacChecked @('pages','list','--environment',$Policy.environmentUrl,'--verbose') $PacPath
-    $line = @($sites -split "`n" | Where-Object { $_ -match [regex]::Escape($Policy.websiteId) })
-    Assert-True ($line.Count -eq 1) 'Approved website missing or ambiguous.'
-    foreach ($expected in $Policy.portalId,$Policy.websiteName,'Enhanced') {
-        Assert-True ($line[0] -match [regex]::Escape($expected)) 'Live website identity/model mismatch.'
-    }
+    $null=Assert-PacWebsiteListing $sites $Policy
     $solutions=Invoke-PacChecked @('solution','list','--environment',$Policy.environmentUrl) $PacPath
     $solution=@($solutions -split "`n" | Where-Object { $_ -match ('^'+[regex]::Escape($Policy.solutionUniqueName)+'\s+') })
     Assert-True ($solution.Count -eq 1 -and $solution[0] -match '\sFalse\s*$') 'Existing Training solution must be unmanaged; no automatic conversion or migration is allowed.'
