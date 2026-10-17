@@ -35,5 +35,14 @@ Reject {Unprotect-ReleaseArtifact $rewritten (Get-FileHash $rewritten -Algorithm
 $outside=Join-Path (Split-Path $work -Parent) 'escape-plaintext.zip'
 Reject {Unprotect-ReleaseArtifact $encrypted $summary.cipherSha256 $outside $work $key $revision}
 if(Test-Path $outside){throw 'Plaintext escaped explicit working root.'};$count++
+$diagnostic=Join-Path $work 'diagnostic.enc.json'
+$diagnosticSummary=Protect-ReleaseArtifact $input $diagnostic $work $key $revision -Purpose PacExportDiagnostic
+$diagnosticPlain=Join-Path $work 'diagnostic.txt'
+$null=Unprotect-ReleaseArtifact $diagnostic $diagnosticSummary.cipherSha256 $diagnosticPlain $work $key $revision -Purpose PacExportDiagnostic
+if((Get-FileHash $input).Hash -cne (Get-FileHash $diagnosticPlain).Hash){throw 'Diagnostic purpose roundtrip failed.'};$count++
+Reject {Unprotect-ReleaseArtifact $diagnostic $diagnosticSummary.cipherSha256 (Join-Path $work 'diagnostic-as-release.zip') $work $key $revision};$count++
+Reject {Unprotect-ReleaseArtifact $encrypted $summary.cipherSha256 (Join-Path $work 'release-as-diagnostic.txt') $work $key $revision -Purpose PacExportDiagnostic};$count++
+$purposeRewritten=Join-Path $work 'purpose-rewritten.enc.json';$changed=Get-Content $diagnostic -Raw|ConvertFrom-Json;$changed.format='northstar-release-aes256gcm-v1';$changed|ConvertTo-Json|Set-Content $purposeRewritten
+Reject {Unprotect-ReleaseArtifact $purposeRewritten (Get-FileHash $purposeRewritten -Algorithm SHA256).Hash.ToLowerInvariant() (Join-Path $work 'purpose-rewritten.zip') $work $key $revision};$count++
 @{status='PASS';tests=$count;scope='AES-256-GCM roundtrip, independent randomness, wrong key, tampered authentication tag, wrong repository/AAD, wrong source revision, no plaintext on failed authentication, and explicit working-root confinement.'}|ConvertTo-Json|Tee-Object -FilePath (Join-Path $root 'crypto-test-results.json')
 exit 0

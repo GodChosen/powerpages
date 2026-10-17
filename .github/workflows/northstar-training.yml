@@ -150,6 +150,19 @@ jobs:
             -OutputPath "$public/release.enc.json" -WorkingRoot $public `
             -KeyBase64 $env:ARTIFACT_KEY -SourceRevision $env:GITHUB_SHA
           $summary | ConvertTo-Json | Set-Content "$public/release-summary.json"
+        } catch {
+          $failure = $_
+          $diagnostic = "$private/evidence/pac-solution-export-failure.txt"
+          if (Test-Path -LiteralPath $diagnostic) {
+            Import-Module "$env:DEPLOY_ROOT/ArtifactCrypto.psm1" -Force
+            $encryptedRoot = "$env:RUNNER_TEMP/export-diagnostics"
+            $summary = Protect-ReleaseArtifact -InputPath $diagnostic `
+              -OutputPath "$encryptedRoot/pac-export.enc.json" -WorkingRoot $encryptedRoot `
+              -KeyBase64 $env:ARTIFACT_KEY -SourceRevision $env:GITHUB_SHA `
+              -Purpose PacExportDiagnostic
+            $summary | ConvertTo-Json | Set-Content "$encryptedRoot/diagnostic-summary.json"
+          }
+          throw $failure
         } finally {
           & "$env:DEPLOY_ROOT/Remove-PrivateWorkingDirectory.ps1" -Path $private -RunnerTemporaryRoot $env:RUNNER_TEMP
         }
@@ -161,6 +174,16 @@ jobs:
           ${{ runner.temp }}/publish/release-summary.json
         if-no-files-found: error
         retention-days: '30'
+    - name: Retain purpose-bound encrypted export failure evidence
+      if: failure()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: northstar-export-diagnostic
+        path: |-
+          ${{ runner.temp }}/export-diagnostics/pac-export.enc.json
+          ${{ runner.temp }}/export-diagnostics/diagnostic-summary.json
+        if-no-files-found: ignore
+        retention-days: '7'
   deploy:
     needs: build
     if: github.event_name == 'workflow_dispatch' && (inputs.operation == 'Deploy' || inputs.operation == 'Rollback')
