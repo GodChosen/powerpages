@@ -18,5 +18,8 @@
   "applicationId": null,
   "githubEnvironment": "northstar-training",
   "rollbackScope": "Rollback replays only the verified prior site configuration. Managed solution changes require a reviewed forward-fix release; this is not business-data restoration, a managed-solution downgrade, or removal of newly introduced components.",
-  "solutionPackageType": "Unmanaged"
+  "solutionPackageType": "Unmanaged",
+  "allowSelfReviewTraining": true,
+  "requiredReviewerLogin": "GodChosen",
+  "requiredReviewerId": 32401680
 }

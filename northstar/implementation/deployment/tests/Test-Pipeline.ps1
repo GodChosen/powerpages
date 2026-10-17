@@ -107,3 +107,4 @@ Check 'Deploy refuses implicit authentication before any PAC call' {
     Assert-True ($LASTEXITCODE -ne 0 -and ($output -join "`n") -match 'explicit authentication mode') 'Implicit auth was not rejected.'
 }
 @{status='PASS';tests=$results.Count;results=$results;scope='Offline fixtures exercise policy, artifact integrity, path traversal, profile, site and command-plan guards. No live authentication or upload performed.'} | ConvertTo-Json -Depth 8 | Tee-Object -FilePath (Join-Path $root 'test-results.json')
+exit 0

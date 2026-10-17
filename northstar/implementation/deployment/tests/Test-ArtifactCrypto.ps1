@@ -36,3 +36,4 @@ $outside=Join-Path (Split-Path $work -Parent) 'escape-plaintext.zip'
 Reject {Unprotect-ReleaseArtifact $encrypted $summary.cipherSha256 $outside $work $key $revision}
 if(Test-Path $outside){throw 'Plaintext escaped explicit working root.'};$count++
 @{status='PASS';tests=$count;scope='AES-256-GCM roundtrip, independent randomness, wrong key, tampered authentication tag, wrong repository/AAD, wrong source revision, no plaintext on failed authentication, and explicit working-root confinement.'}|ConvertTo-Json|Tee-Object -FilePath (Join-Path $root 'crypto-test-results.json')
+exit 0

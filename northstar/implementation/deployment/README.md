@@ -43,9 +43,9 @@ environment, organization, website/portal IDs, Enhanced model and unmanaged
 solution. Offline tests exercise guard failures and AES-256-GCM authentication.
 Their reports are `test-results.json` and `crypto-test-results.json`.
 
-Repository inspection found no existing workflows, secrets, variables or GitHub
-environments, and master was unprotected. No identity, security grant, secret,
-environment or branch rule has been created by these files. Hosted execution
+Initial repository inspection found no workflows, secrets, variables or GitHub
+environments, and master was unprotected. Applying these source files does not
+create an identity, security grant, secret, environment or branch rule. Hosted execution
 requires the concrete administrator approvals below. The actual lifecycle
 assembly and steps must be registered and included in the exported solution
 before Export succeeds.
@@ -131,8 +131,11 @@ keys. Preserve the existing osazeedemo tree.
 Before activating Export/Deploy, obtain explicit approval for:
 
 1. Master branch protection and the **northstar-training** GitHub environment,
-   with required reviewers, prevent self-review and master-only deployment
-   branches. The workflow checks these settings and rejects missing protection.
+   with required reviewer **GodChosen** (public GitHub user ID 32401680)
+   and master-only deployment branches. The explicitly approved single-owner
+   Training policy allows that owner to manually approve their own dispatch
+   (`prevent_self_review=false`); no job approves itself. Production independent
+   review requires a separate reviewer and policy. The workflow checks these settings and rejects missing protection.
 2. A dedicated Entra deployment application and federated trust:
    - issuer: `https://token.actions.githubusercontent.com`
    - subject: `repo:GodChosen/powerpages:environment:northstar-training`

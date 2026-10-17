@@ -86,12 +86,16 @@ jobs:
 
         & "$env:DEPLOY_ROOT/tests/Test-ArtifactCrypto.ps1"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+        & "$env:DEPLOY_ROOT/tests/Test-GitHubProtection.ps1"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: northstar-build-evidence
         path: |-
           ${{ env.DEPLOY_ROOT }}/test-results.json
           ${{ env.DEPLOY_ROOT }}/crypto-test-results.json
+          ${{ env.DEPLOY_ROOT }}/protection-test-results.json
         if-no-files-found: error
         retention-days: '14'
   export:
