@@ -29,12 +29,19 @@ $ npm run test:demo
 
 Synthetic demo and loopback server passed.
 
+$ npm run test:packages
+
+> dataverse-ribbon-audit-explorer@1.5.1 test:packages
+> node tests/package-validation.test.cjs
+
+Manifest regression passed: omitting the required empty dependency container is rejected.
+
 $ npm run docs:check
 
 > dataverse-ribbon-audit-explorer@1.5.1 docs:check
 > node scripts/check-docs.mjs
 
-Documentation links passed (31 local links).
+Documentation links passed (40 local links).
 
 $ npm run release:verify
 

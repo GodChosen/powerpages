@@ -8,6 +8,8 @@
 - Add package/source verification and path-scoped read-only CI.
 - Remove environment-specific app-role mappings and external icon/channel dependencies from the public deployment source.
 - Expose hide-target and standalone ValueRule field references.
+- Retain the required empty manifest dependency container; add a regression check after detecting a sandbox installation failure.
+- Validate corrected managed/unmanaged installation, administrator scans/exports, generated-baseline managed upgrade and removal in a sandbox; document unmanaged-container retention and explicit cleanup.
 - Preserve conservative classifications. No automatic cleanup or confirmed-creation claim added.
 
 Public binaries are locally rebuilt from this source.

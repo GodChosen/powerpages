@@ -11,9 +11,13 @@
 
 Run npm ci, then the [README checks](../README.md). Development dependencies are pinned and not deployed. Path-scoped CI uses Linux/Windows and Node 22/24; a configured workflow is not a successful run until it finishes. PR checks provide the result.
 
-Seven inherited suites cover core/CSV, helpers/transport, focused app behavior, ZIP parsing, results, unmanaged classification and audit integration. The synthetic demo adds an eighth suite for fixture-driven UI and loopback-server behavior. Cases include command-only overrides, creations as candidates, affected managed controls, hides/rules, equivalent XML, context isolation, denied sources, empty layers and layer-assisted refinement. Public packaging adds hide-target and ValueRule field-reference assertions.
+Seven inherited suites cover core/CSV, helpers/transport, focused app behavior, ZIP parsing, results, unmanaged classification and audit integration. The synthetic demo adds an eighth suite for fixture-driven UI and loopback-server behavior. A ninth suite rejects solution packages that omit the required dependency container, covering the installation regression found during sandbox testing. Cases include command-only overrides, creations as candidates, affected managed controls, hides/rules, equivalent XML, context isolation, denied sources, empty layers and layer-assisted refinement. Public packaging adds hide-target and ValueRule field-reference assertions.
 
 [Local validation output](../evidence/local-validation.txt) records actual command results. [Checksums](../releases/checksums.json) include source-resource hashes. ZIP timestamps may vary; the build promise is source-content consistency, not bit-for-bit identical archives.
+
+## Dataverse lifecycle evidence
+
+The corrected public packages were tested in one sandbox with System Administrator access: managed/unmanaged import, repeated launches, scan/export, a generated-baseline managed upgrade and removal. See [validation and handover](DATAVERSE_VALIDATION.md) and the [sanitized machine record](../evidence/dataverse-validation-1.5.1.json). Non-admin permissions were not tested.
 
 ## Package provenance
 

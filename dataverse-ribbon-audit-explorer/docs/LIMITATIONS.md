@@ -17,7 +17,7 @@
 
 ## Roadmap by evidence value
 
-1. Independent sandbox import/upgrade/uninstall and reviewer-role validation.
+1. Independent replication and non-admin reviewer-role validation; administrator sandbox lifecycle results are recorded in [validation and handover](DATAVERSE_VALIDATION.md).
 2. Controlled classic managed/unmanaged fixture matrix across platform versions, compared with Command Checker/exported definitions.
 3. External baseline provenance/comparison before any confirmed-creation label.
 4. Additional item kinds, global/table shadowing and nested-rule cases.

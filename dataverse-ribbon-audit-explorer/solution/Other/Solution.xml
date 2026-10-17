@@ -89,5 +89,6 @@
       <RootComponent type="62" schemaName="dexp_DataverseDependencyExplorer" behavior="0" />
       <RootComponent type="80" schemaName="dexp_DataverseDependencyExplorer" behavior="0" />
     </RootComponents>
+    <MissingDependencies />
   </SolutionManifest>
 </ImportExportXml>

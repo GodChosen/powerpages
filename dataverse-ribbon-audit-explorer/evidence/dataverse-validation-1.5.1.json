@@ -1,0 +1,85 @@
+{
+  "sourceVersion": "1.5.1",
+  "solutionVersion": "1.5.1.0",
+  "dates": "17–18 October 2026",
+  "timezone": "Europe/London",
+  "environmentType": "Sandbox",
+  "platformBuild": "9.2.26091.152",
+  "accountRoles": ["System Administrator", "Basic User"],
+  "permissionScope": "Administrator only, selected by the user; no role changes; least-privilege access not tested",
+  "packages": [
+    {
+      "name": "DataverseRibbonAuditExplorer_1.5.1_unmanaged.zip",
+      "sha256": "92e0e43e714792866b1dd901a0ded6d1f1527cbddff8aec451be13881f0b40d4"
+    },
+    {
+      "name": "DataverseRibbonAuditExplorer_1.5.1_managed.zip",
+      "sha256": "998ea8f29b4085892ca6a1da327f6a3799ccffb9244b355f216ddb948ef02182"
+    }
+  ],
+  "manifestRegression": {
+    "initialCandidate": "Import failed: Object reference not set to an instance of an object",
+    "correction": "Restore required empty MissingDependencies manifest container",
+    "regressionTest": "Reject managed ZIP with the container removed"
+  },
+  "managedInstall": {
+    "passed": true,
+    "installedResourceHashesMatchingSource": 6
+  },
+  "runtime": {
+    "normalMakerPlayLaunchesPassed": 3,
+    "directResourceLaunchesPassed": 3,
+    "scanRows": 2835,
+    "tableRoster": 871,
+    "tableCoverageCsvRows": 872,
+    "sourceRequestNotes": 0,
+    "exportCsvRows": 2835,
+    "exportCoverageRows": 872,
+    "qualification": "One controlled main.aspx navigation remained at the shell; normal Maker Play passed three times. Startup reliability is not universally established."
+  },
+  "managedUpgrade": {
+    "passed": true,
+    "method": "stage-and-upgrade",
+    "fromVersion": "1.5.0.0",
+    "toVersion": "1.5.1.0",
+    "baseline": "Generated current-runtime baseline with one disposable canary, not a historical release",
+    "resourcesBefore": 7,
+    "resourcesAfter": 6,
+    "obsoleteCanaryRemoved": true,
+    "holdingSolutionRemaining": false,
+    "installedResourceHashesMatchingSource": 6,
+    "postUpgradeScanRows": 2835
+  },
+  "managedUninstall": {
+    "cyclesPassed": 2,
+    "remainingToolApps": 0,
+    "remainingToolResources": 0
+  },
+  "unmanagedInstall": {
+    "passed": true,
+    "installedResourceHashesMatchingSource": 6,
+    "scanRows": 2835
+  },
+  "unmanagedRemoval": {
+    "containerDeletionLeftResources": 6,
+    "expected": true,
+    "explicitTestComponentCleanupCompleted": true,
+    "finalToolApps": 0,
+    "finalToolResources": 0,
+    "sitemapVerification": "Maker Default Solution inventory: test sitemap absent; direct sitemap API query failed with a platform default-sitemap error and was not used as evidence"
+  },
+  "finalState": {
+    "originalThreeSolutionNamesAndVersionsUnchanged": true,
+    "rolesUnchanged": true,
+    "productionTouched": false,
+    "qualification": "Component cleanup verified; no claim of a byte-for-byte environment restore or publisher removal"
+  },
+  "notEstablished": [
+    "Least-privilege reviewer role",
+    "Historical release upgrade compatibility",
+    "Independent endorsement",
+    "Cross-tenant compatibility",
+    "Live controlled creation/override classification matrix"
+  ],
+  "evidenceHandling": "Raw tenant logs, screenshots, identifiers and exports retained privately; public record is sanitized"
+}

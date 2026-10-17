@@ -40,7 +40,7 @@ Open `http://127.0.0.1:4175/demo/index.html`, select **Scan / rescan**, then fil
 3. Configure app sharing in your environment and confirm source **1.5.1**.
 4. Scan, review findings and layer status, and export results plus table coverage. Validate findings against Command Checker/exported RibbonDiffXml before considering cleanup.
 
-The public release includes automated fixture tests and source/package verification. See the [validation record](docs/VALIDATION.md) for the checks performed.
+The corrected public packages passed sandbox installation, administrator access, managed upgrade and removal checks. See the [Dataverse validation and handover](docs/DATAVERSE_VALIDATION.md) for results and limits, and the [validation record](docs/VALIDATION.md) for automated checks.
 
 ## Reading the results
 
@@ -76,6 +76,7 @@ The public release includes automated fixture tests and source/package verificat
 npm run check
 npm test
 npm run test:demo
+npm run test:packages
 npm run docs:check
 npm run release:verify
 npm run format:check

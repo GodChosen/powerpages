@@ -20,7 +20,7 @@ Solution unique name remains `DataverseDependencyExplorer`; app unique name rema
 
 Requests use the signed-in user's existing same-origin Dataverse session. No client secret, app registration or API token is configured. Reads cover table metadata, solutions/components, classic ribbon records, appactions, custom pages and available component layers. Direct dependency lookups use required/dependent-component functions.
 
-A private predecessor was exercised with an administrator account. A minimal custom-role privilege set has **not** been established. Do not assume System Customizer or an ordinary user covers every endpoint. Validate the reviewer role in a sandbox; 401/403 means incomplete coverage. Installing/sharing the app and scanning are separate permission concerns.
+The corrected public 1.5.1 packages were exercised in a sandbox with System Administrator and Basic User roles, as selected by the user. See the [completed validation](DATAVERSE_VALIDATION.md). A minimal custom-role privilege set has **not** been established. Do not assume System Customizer or an ordinary user covers every endpoint. Validate the reviewer role in a sandbox; 401/403 means incomplete coverage. Installing/sharing the app and scanning are separate permission concerns.
 
 ## Sandbox acceptance
 
@@ -35,3 +35,5 @@ Report sanitized results through [CONTRIBUTING](../CONTRIBUTING.md).
 ## Upgrade and removal
 
 Retain previous packages and acceptance records. Test upgrades first. Uninstalling the managed Explorer removes its app/resources subject to normal dependency checks; it does not remove discovered customizations. Investigate blocked dependencies rather than deleting audited business components. Rehearse recovery using your environment backup strategy; an older ZIP is not a guaranteed rollback.
+
+The unmanaged ZIP is for development. Deleting its solution container leaves components in the environment. In an isolated test environment, remove the test app, its sitemap, then index.html and the remaining five resources only after checking dependencies. Never delete shared or audited business components to clean up this tool. This behavior and explicit test-component cleanup were verified in the sandbox lifecycle run.

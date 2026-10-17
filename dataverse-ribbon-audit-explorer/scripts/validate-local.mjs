@@ -10,7 +10,15 @@ await writeFile(
   receipt,
   `Local validation for ${pkg.name} ${pkg.version}\nNode ${process.version}; platform ${process.platform}\nThis is local validation, not a Dataverse import or independent review.\n`,
 );
-for (const task of ['check', 'test', 'test:demo', 'docs:check', 'release:verify', 'format:check']) {
+for (const task of [
+  'check',
+  'test',
+  'test:demo',
+  'test:packages',
+  'docs:check',
+  'release:verify',
+  'format:check',
+]) {
   const result = spawnSync(process.execPath, [process.env.npm_execpath, 'run', task], {
     cwd: root,
     encoding: 'utf8',

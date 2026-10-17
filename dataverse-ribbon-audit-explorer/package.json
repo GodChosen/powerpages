@@ -13,7 +13,8 @@
     "docs:check": "node scripts/check-docs.mjs",
     "release:verify": "node scripts/verify-release.mjs",
     "test:demo": "node tests/demo.test.cjs",
-    "validate": "node scripts/validate-local.mjs"
+    "validate": "node scripts/validate-local.mjs",
+    "test:packages": "node tests/package-validation.test.cjs"
   },
   "keywords": [],
   "author": "Osazee Odigie (https://github.com/GodChosen)",

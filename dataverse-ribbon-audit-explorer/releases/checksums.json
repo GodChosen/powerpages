@@ -5,8 +5,8 @@
   "files": [
     {
       "name": "DataverseRibbonAuditExplorer_1.5.1_unmanaged.zip",
-      "bytes": 27310,
-      "sha256": "2cede9a1729138d39ca4c10d8317b79c8a141847da35dad2464f1de50c274e27",
+      "bytes": 27321,
+      "sha256": "92e0e43e714792866b1dd901a0ded6d1f1527cbddff8aec451be13881f0b40d4",
       "resourceSha256": {
         "app.js": "7a361171c48f05ee21f28065aae7377056b3b3ed071256998f52c81dee0ce45c",
         "commands.js": "67c2d7629e77053d6760cccc2b23b760cb7f4dfe8fed2e4087e03ab8d69fac0f",
@@ -18,8 +18,8 @@
     },
     {
       "name": "DataverseRibbonAuditExplorer_1.5.1_managed.zip",
-      "bytes": 27311,
-      "sha256": "5d99da377e1a0eebb37f0cb0bc21ec408d124c790d55601398a890d81ffefc98",
+      "bytes": 27322,
+      "sha256": "998ea8f29b4085892ca6a1da327f6a3799ccffb9244b355f216ddb948ef02182",
       "resourceSha256": {
         "app.js": "7a361171c48f05ee21f28065aae7377056b3b3ed071256998f52c81dee0ce45c",
         "commands.js": "67c2d7629e77053d6760cccc2b23b760cb7f4dfe8fed2e4087e03ab8d69fac0f",

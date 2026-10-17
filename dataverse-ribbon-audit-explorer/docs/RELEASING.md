@@ -2,7 +2,7 @@
 
 Source/npm version is 1.5.1; solution version is 1.5.1.0. Solution unique name stays DataverseDependencyExplorer; prefix stays dexp. Preserve stable IDs for upgrades.
 
-The deployment source excludes private app-role assignments, the source environment's default-icon dependency and app-channel preference. The script stages six current resources, updates version/Managed flags, and packs each solution type without deploying.
+The deployment source excludes private app-role assignments, the source environment's default-icon dependency and app-channel preference. The script stages six current resources, updates version/Managed flags, and packs each solution type without deploying. Keep the SolutionManifest MissingDependencies element present even when empty: removing the container can pass XML/schema checks but fail Dataverse manifest import.
 
 1. Install PowerShell, [Power Platform CLI](https://learn.microsoft.com/en-us/power-platform/developer/cli/introduction) and supported Node. Run npm ci.
 2. Run syntax, tests, demo, documentation and format checks from README.

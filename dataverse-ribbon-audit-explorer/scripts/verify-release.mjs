@@ -57,6 +57,10 @@ try {
     );
     assert.equal(manifest.querySelector('UniqueName')?.textContent, 'DataverseDependencyExplorer');
     assert.equal(manifest.querySelectorAll('RootComponents > RootComponent').length, 8);
+    assert(
+      manifest.querySelector('SolutionManifest > MissingDependencies'),
+      'Solution manifest must retain the dependency container, even when empty',
+    );
     const content = text('customizations.xml'),
       custom = xml(content);
     assert(
