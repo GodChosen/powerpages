@@ -40,7 +40,16 @@ is **not** demonstrated by this in-place Training pipeline.
 
 Local PAC **2.9.3** and read-only Training checks verified the approved tenant,
 environment, organization, website/portal IDs, Enhanced model and unmanaged
-solution. Offline tests exercise guard failures and AES-256-GCM authentication.
+solution under an interactive identity. Hosted OIDC authentication passed in two
+approved Export attempts, but both stopped safely before export because the
+application-principal PAC listing lacked hosting metadata. No deployment passed.
+The replacement preflight queries Dataverse `powerpagesite` with FetchXML
+`count="2"` and exact website ID, then requires exactly one row matching the
+reviewed name, model `2.0`, primary domain and Active state. It uses an XML file
+and explicit environment; it adds no admin API grant. The hosting-resource GUID
+remains a reviewed policy binding, not a live-verified hosting-resource claim.
+The downloaded site's website ID is independently checked before packaging.
+Offline tests exercise guard failures and AES-256-GCM authentication.
 Their reports are `test-results.json` and `crypto-test-results.json`.
 
 Initial repository inspection found no workflows, secrets, variables or GitHub
@@ -153,8 +162,9 @@ Before activating Export/Deploy, obtain explicit approval for:
 The approved Training deployment application is `NorthstarHandbookGitHubTraining`,
 client ID `0095e340-8666-4f41-b29f-730facbf6fb5`. Its nonsecret ID is pinned in
 `target.training.json`; its Training application user was assigned System
-Customizer under explicit approval. This assignment still requires the actual
-OIDC/export/import permission tests; no broader role is assumed. Regenerate
+Customizer under explicit approval. OIDC and organization identity checks passed;
+actual export/import permission tests remain outstanding. No broader role is
+assumed. Regenerate
 packages whenever the policy hash changes. Do not create the
 application, federated credential, role or secret merely by merging a PR.
 

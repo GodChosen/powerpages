@@ -87,6 +87,25 @@ Check 'Manifest identity cannot disguise unrelated binary' {
 }
 
 Check 'Approved Training target accepted' { $null=Read-TrainingPolicy $policyPath }
+$siteRow="$($policy.websiteId) $($policy.websiteName) 2.0 $(([uri]$policy.runtimeUrl).DnsSafeHost) Active"
+Check 'Bounded Dataverse query targets exact enhanced website' {
+    [xml]$query=New-SiteTargetFetchXml $policy
+    Assert-True ($query.fetch.count -ceq '2' -and -not $query.fetch.HasAttribute('top') -and $query.fetch.entity.name -ceq 'powerpagesite' -and $query.fetch.entity.filter.condition.value -ceq $policy.websiteId) 'Incorrect query bound or target.'
+    Assert-True (@($query.fetch.entity.attribute).Count -eq 5) 'Query must request only target-proof columns.'
+}
+Check 'Actual Dataverse result shape verifies ID name model domain state' {$null=Assert-DataverseSiteTarget ("Connected`npowerpagesiteid name datamodelversion primarydomainname statecode`n"+$siteRow) $policy}
+foreach($case in @(
+    @{name='id';old=$policy.websiteId;new='00000000-0000-0000-0000-000000000001'},
+    @{name='name';old=$policy.websiteName;new='Northstar Connect - other'},
+    @{name='model';old=' 2.0 ';new=' 1.0 '},
+    @{name='domain';old=([uri]$policy.runtimeUrl).DnsSafeHost;new='other.powerappsportals.com'},
+    @{name='state';old=' Active';new=' Inactive'}
+)) {
+    Check ('Dataverse proof rejects changed '+$case.name) {Reject {Assert-DataverseSiteTarget ($siteRow.Replace($case.old,$case.new)) $policy} ('mismatch: '+$case.name)}
+}
+Check 'Dataverse proof rejects zero rows' {Reject {Assert-DataverseSiteTarget 'No results' $policy} 'missing or ambiguous'}
+Check 'Dataverse proof rejects duplicate rows' {Reject {Assert-DataverseSiteTarget ($siteRow+"`n"+$siteRow) $policy} 'missing or ambiguous'}
+Check 'Dataverse proof rejects incomplete model/domain result' {Reject {Assert-DataverseSiteTarget "$($policy.websiteId) $($policy.websiteName)" $policy} 'format is incomplete'}
 $listing="Connected`n Index Website Id Portal Id Friendly Name Portal Url Data Model Version Single Page Application Is Site Active`n [1]  $($policy.websiteId)   $($policy.portalId)   $($policy.websiteName)   $($policy.runtimeUrl)   Enhanced   No   Yes`n"
 Check 'PAC verbose table checks every identity column' {$null=Assert-PacWebsiteListing $listing $policy}
 Check 'Wrapped PAC row and ANSI styling preserve exact identities' {

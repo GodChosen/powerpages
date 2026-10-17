@@ -224,6 +224,28 @@ function Assert-PacWebsiteListing([string]$Text,$Policy) {
     return @{websiteMatched=$true;portalMatched=$true;nameMatched=$true;runtimeUrlMatched=$true;model='Enhanced';active=$true}
 }
 
+function New-SiteTargetFetchXml($Policy) {
+    Assert-True ($Policy.websiteId -match '^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$') 'Invalid reviewed website ID.'
+    return ('<fetch count="2"><entity name="powerpagesite"><attribute name="powerpagesiteid"/><attribute name="name"/><attribute name="datamodelversion"/><attribute name="primarydomainname"/><attribute name="statecode"/><filter><condition attribute="powerpagesiteid" operator="eq" value="'+$Policy.websiteId+'"/></filter></entity></fetch>')
+}
+
+function Assert-DataverseSiteTarget([string]$Text,$Policy) {
+    # PAC 2.9.3 org fetch has no JSON output switch. Parse only complete result
+    # rows from this five-column bounded query, never a substring elsewhere.
+    $clean=[regex]::Replace($Text,'\x1B\[[0-?]*[ -/]*[@-~]','')
+    $guid='[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}'
+    $rows=@($clean -split '\r?\n' | Where-Object {$_ -match ('^\s*'+$guid+'(?:\s|$)')})
+    Assert-True ($rows.Count -eq 1) 'Dataverse website result missing or ambiguous.'
+    $pattern='^\s*(?<id>'+ $guid +')\s+(?<name>.+?)\s+(?<model>\d+\.\d+)\s+(?<domain>\S+)\s+(?<state>Active|Inactive)\s*$'
+    $match=[regex]::Match($rows[0],$pattern)
+    Assert-True ($match.Success) 'Dataverse website result format is incomplete or unsupported.'
+    $expected=@{id=$Policy.websiteId;name=$Policy.websiteName;model='2.0';domain=([uri]$Policy.runtimeUrl).DnsSafeHost;state='Active'}
+    foreach($key in $expected.Keys){
+        Assert-True ($match.Groups[$key].Value -ceq $expected[$key]) ('Dataverse website target mismatch: '+$key+'.')
+    }
+    return @{websiteMatched=$true;nameMatched=$true;model='Enhanced';domainMatched=$true;active=$true;source='Dataverse powerpagesite';hostingResourceEvidence='Reviewed policy binding only; not a live hosting-resource verification.'}
+}
+
 function Assert-LiveTrainingTarget($Policy,[string]$PacPath='pac') {
     $version = Invoke-PacChecked @('help') $PacPath
     Assert-True ($version -match 'Version:\s+2\.9\.3(?:\+|\s)') 'Wrong installed PAC version.'
@@ -234,12 +256,17 @@ function Assert-LiveTrainingTarget($Policy,[string]$PacPath='pac') {
     foreach ($expected in $Policy.environmentId,$Policy.organizationId,$Policy.environmentUrl) {
         Assert-True ($org -match [regex]::Escape($expected)) 'Live organization does not match approved Training target.'
     }
-    $sites = Invoke-PacChecked @('pages','list','--environment',$Policy.environmentUrl,'--verbose') $PacPath
-    $null=Assert-PacWebsiteListing $sites $Policy
+    $queryPath=Join-Path ([IO.Path]::GetTempPath()) ('northstar-site-target-'+[guid]::NewGuid().ToString('N')+'.xml')
+    try {
+        [IO.File]::WriteAllText($queryPath,(New-SiteTargetFetchXml $Policy))
+        $siteResult=Invoke-PacChecked @('org','fetch','--environment',$Policy.environmentUrl,'--xmlFile',$queryPath) $PacPath
+        $siteProof=Assert-DataverseSiteTarget $siteResult $Policy
+        Write-Host (@{check='Dataverse website preflight';websiteMatched=$true;nameMatched=$true;modelMatched=$true;domainMatched=$true;active=$true} | ConvertTo-Json -Compress)
+    } finally {if(Test-Path -LiteralPath $queryPath){Remove-Item -LiteralPath $queryPath -Force}}
     $solutions=Invoke-PacChecked @('solution','list','--environment',$Policy.environmentUrl) $PacPath
     $solution=@($solutions -split "`n" | Where-Object { $_ -match ('^'+[regex]::Escape($Policy.solutionUniqueName)+'\s+') })
     Assert-True ($solution.Count -eq 1 -and $solution[0] -match '\sFalse\s*$') 'Existing Training solution must be unmanaged; no automatic conversion or migration is allowed.'
-    return @{tenant=$Policy.tenantId;environment=$Policy.environmentId;website=$Policy.websiteId;model='Enhanced'}
+    return @{tenant=$Policy.tenantId;environment=$Policy.environmentId;website=$Policy.websiteId;model='Enhanced';siteProof=$siteProof}
 }
 
 Export-ModuleMember -Function *
