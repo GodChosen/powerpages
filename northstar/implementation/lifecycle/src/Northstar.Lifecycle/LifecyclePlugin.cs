@@ -14,6 +14,26 @@ using Microsoft.Xrm.Sdk.Query;
 
 namespace Northstar.Lifecycle
 {
+    // Runs before Dataverse adds audit, ownership, and state defaults.
+    // Nested creates are deliberately unsupported until explicitly validated.
+    public sealed class LifecycleCreateInputGuard : IPlugin
+    {
+        public const string Validated = "ns.lifecycle.create.input.v1";
+        public void Execute(IServiceProvider provider)
+        {
+            var context = (IPluginExecutionContext)provider.GetService(typeof(IPluginExecutionContext));
+            if (context.PrimaryEntityName != Contract.Table || context.MessageName != "Create" ||
+                context.Stage != 10 || context.Mode != 0 || context.Depth != 1 ||
+                context.ParentContext != null || context.UserId != context.InitiatingUserId)
+                throw PrincipalConfiguration.Failure("NS_REGISTRATION");
+            if (!(context.InputParameters.Contains("Target") &&
+                context.InputParameters["Target"] is Entity target) || target.LogicalName != Contract.Table ||
+                target.Attributes.Keys.Any(key => !new[] {
+                    "ns_name", "ns_description", "ns_contact", "ns_requestid"
+                }.Contains(key))) throw PrincipalConfiguration.Failure("NS_INVALID_INPUT");
+            context.SharedVariables[Validated] = true;
+        }
+    }
     // Optional deployment-time identity-shape proof. It exposes only hashes of
     // the calling principal, never an identity value or a request record.
     public sealed class LifecyclePrincipalProbe : IPlugin
@@ -172,7 +192,36 @@ namespace Northstar.Lifecycle
                 target.LogicalName != Contract.Table) throw Fail("NS_INVALID_INPUT");
             if (context.MessageName == "Create")
             {
-                RequireOnly(target, "ns_name", "ns_description", "ns_contact", "ns_requestid");
+                var validated = context.SharedVariables.Contains(LifecycleCreateInputGuard.Validated) &&
+                    Equals(context.SharedVariables[LifecycleCreateInputGuard.Validated], true);
+                var inputParent = context.ParentContext;
+                if (!validated && inputParent != null && inputParent.MessageName == "Create" &&
+                    inputParent.PrimaryEntityName == Contract.Table &&
+                    inputParent.UserId == context.UserId &&
+                    inputParent.InitiatingUserId == context.InitiatingUserId &&
+                    inputParent.InputParameters.Contains("Target") &&
+                    inputParent.InputParameters["Target"] is Entity inputTarget &&
+                    inputTarget.LogicalName == Contract.Table &&
+                    (inputTarget.Id == Guid.Empty || inputTarget.Id == target.Id) &&
+                    inputParent.SharedVariables.Contains(LifecycleCreateInputGuard.Validated))
+                    validated = Equals(inputParent.SharedVariables[LifecycleCreateInputGuard.Validated], true);
+                if (!validated) throw Fail("NS_REGISTRATION");
+                RequireOnly(target, "ns_name", "ns_description", "ns_contact", "ns_requestid",
+                    "createdby", "createdon", "modifiedby", "modifiedon", "modifiedonbehalfby",
+                    "ownerid", "owningbusinessunit", "owninguser", "statecode", "statuscode");
+                foreach (var key in new[] { "createdby", "modifiedby", "ownerid", "owninguser" })
+                    if (target.Contains(key) && (!(target[key] is EntityReference principal) ||
+                        principal.LogicalName != "systemuser" || principal.Id != context.UserId))
+                        throw Fail("NS_INVALID_INPUT");
+                if (target.Contains("owningbusinessunit") &&
+                    (!(target["owningbusinessunit"] is EntityReference unit) ||
+                    unit.LogicalName != "businessunit" || unit.Id != context.BusinessUnitId))
+                    throw Fail("NS_INVALID_INPUT");
+                if (target.Contains("modifiedonbehalfby") && target["modifiedonbehalfby"] != null)
+                    throw Fail("NS_INVALID_INPUT");
+                if ((target.Contains("statecode") && target.GetAttributeValue<OptionSetValue>("statecode")?.Value != 0) ||
+                    (target.Contains("statuscode") && target.GetAttributeValue<OptionSetValue>("statuscode")?.Value != 1))
+                    throw Fail("NS_INVALID_INPUT");
                 ValidateContent(target.GetAttributeValue<string>("ns_name"),
                     target.GetAttributeValue<string>("ns_description"));
                 Contact(target);

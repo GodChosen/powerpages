@@ -156,10 +156,65 @@ public static class Program
     };
     private static Context CreateContext(Entity target) {
         var context = new Context("Create", Lab.Portal, 20);
+        var input = new Context("Create", Lab.Portal, 10);
+        input.Values["Depth"] = 1;
+        input.Input["Target"] = target;
+        new LifecycleCreateInputGuard().Execute(new Provider { Context = input });
+        context.Shared[LifecycleCreateInputGuard.Validated] = input.Shared[LifecycleCreateInputGuard.Validated];
         context.Input["Target"] = target; return context;
     }
     public static int Main()
     {
+        foreach (var field in new[] { "ownerid", "statecode", "statuscode", "createdon", "createdby" })
+            Test("PreValidation rejects injected platform field " + field, () => {
+                var target = CreateTarget(); target[field] = "forged";
+                Deny(() => CreateContext(target), "NS_INVALID_INPUT");
+            });
+        Test("Create without PreValidation proof fails closed", () => {
+            var context = new Context("Create", Lab.Portal, 20);
+            context.Input["Target"] = CreateTarget();
+            Deny(() => new Lab().Execute(context), "NS_REGISTRATION");
+        });
+        Test("Create accepts actual stage30 parent carrying PreValidation proof", () => {
+            var target = CreateTarget();
+            var parent = new Context("Create", Lab.Portal, 30);
+            parent.Input["Target"] = target;
+            parent.Shared[LifecycleCreateInputGuard.Validated] = true;
+            var context = new Context("Create", Lab.Portal, 20);
+            context.Input["Target"] = target;
+            context.Values["ParentContext"] = parent.Value;
+            new Lab().Execute(context);
+            Check(target.GetAttributeValue<OptionSetValue>("ns_submissionstatus").Value == Contract.Draft);
+        });
+        Test("Create cannot reuse parent proof for a different nonempty record ID", () => {
+            var target = CreateTarget(); target.Id = Guid.NewGuid();
+            var parent = new Context("Create", Lab.Portal, 30);
+            parent.Input["Target"] = new Entity(Contract.Table, Guid.NewGuid());
+            parent.Shared[LifecycleCreateInputGuard.Validated] = true;
+            var context = new Context("Create", Lab.Portal, 20);
+            context.Input["Target"] = target;
+            context.Values["ParentContext"] = parent.Value;
+            Deny(() => new Lab().Execute(context), "NS_REGISTRATION");
+        });
+        Test("Create permits platform-owned defaults after payload validation", () => {
+            var context = CreateContext(CreateTarget());
+            var target = (Entity)context.Input["Target"];
+            target["ownerid"] = new EntityReference("systemuser", Lab.Portal);
+            target["statecode"] = new OptionSetValue(0);
+            target["statuscode"] = new OptionSetValue(1);
+            new Lab().Execute(context);
+            Check(target.GetAttributeValue<OptionSetValue>("ns_submissionstatus").Value == Contract.Draft);
+        });
+        Test("Create rejects substituted ownership after payload validation", () => {
+            var context = CreateContext(CreateTarget());
+            ((Entity)context.Input["Target"])["ownerid"] = new EntityReference("systemuser", Lab.Operator);
+            Deny(() => new Lab().Execute(context), "NS_INVALID_INPUT");
+        });
+        Test("Nested Create is unsupported and fails closed", () => {
+            var context = new Context("Create", Lab.Portal, 10);
+            context.Input["Target"] = CreateTarget();
+            Deny(() => new LifecycleCreateInputGuard().Execute(new Provider { Context = context }), "NS_REGISTRATION");
+        });
         Test("Create assigns draft defaults and opaque reference atomically on target", () => {
             var target = CreateTarget(); new Lab().Execute(CreateContext(target));
             Check(target.GetAttributeValue<OptionSetValue>("ns_submissionstatus").Value == Contract.Draft);
