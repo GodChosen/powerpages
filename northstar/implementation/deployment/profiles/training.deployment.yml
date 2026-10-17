@@ -1,0 +1,3 @@
+# Deliberately no field overrides. Target routing is explicit in PAC.
+# Add reviewed exported-record overrides only after updating its SHA-256.
+{}

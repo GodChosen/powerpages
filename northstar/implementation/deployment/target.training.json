@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "name": "Training",
+  "tenantId": "ae98a065-3249-4ddf-8d8d-801177e90ba1",
+  "environmentId": "8b9855ed-8c02-e566-92db-7ab085f38da1",
+  "environmentUrl": "https://powerpagestraining.crm11.dynamics.com/",
+  "organizationId": "4d72579a-4ba0-f111-aaa0-6045bdcf39a2",
+  "websiteId": "cd7e6bae-ae51-46f4-9027-542ca5afe292",
+  "portalId": "ad793e7a-0aa6-4c28-80ec-5f4217424093",
+  "websiteName": "Northstar Connect - northstar-connect-training",
+  "runtimeUrl": "https://northstar-connect-training.powerappsportals.com/",
+  "modelVersion": 2,
+  "pacVersion": "2.9.3",
+  "deploymentProfile": "training",
+  "deploymentProfileSha256": "a2c8587368b31e7d95d4ae5edfb78e90caf0e4f0b016999b65e4c495de67f763",
+  "solutionUniqueName": "NorthstarHandbookValidation",
+  "approvedRepository": "GodChosen/powerpages",
+  "applicationId": null,
+  "githubEnvironment": "northstar-training",
+  "rollbackScope": "Rollback replays only the verified prior site configuration. Managed solution changes require a reviewed forward-fix release; this is not business-data restoration, a managed-solution downgrade, or removal of newly introduced components.",
+  "solutionPackageType": "Unmanaged"
+}

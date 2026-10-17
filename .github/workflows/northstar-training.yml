@@ -1,0 +1,253 @@
+name: Northstar Training deployment
+'on':
+  pull_request: {}
+  push:
+    branches:
+    - master
+  workflow_dispatch:
+    inputs:
+      operation:
+        type: choice
+        options:
+        - Build
+        - Export
+        - Deploy
+        - Rollback
+        default: Build
+        required: true
+      candidate_run_id:
+        description: Successful master workflow run with northstar-release
+        type: string
+      candidate_sha256:
+        description: Reviewed encrypted release.enc.json SHA-256 from that run
+        type: string
+      rollback_run_id:
+        description: Successful baseline run with northstar-release
+        type: string
+      rollback_sha256:
+        description: Reviewed baseline encrypted release.enc.json SHA-256
+        type: string
+      confirmation:
+        description: Type TRAINING for Export/Deploy/Rollback
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: northstar-training-${{ github.event_name == 'workflow_dispatch' && 'write' || github.ref }}
+  cancel-in-progress: false
+env:
+  DEPLOY_ROOT: northstar/implementation/deployment
+  LIFECYCLE_ROOT: northstar/implementation/lifecycle
+  PROXY_ROOT: northstar/implementation/server-logic
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        persist-credentials: false
+    - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+      with:
+        dotnet-version: |-
+          10.0.x
+          8.0.426
+    - name: Restore locked dependencies and test unsigned development build
+      shell: pwsh
+      run: |-
+        Push-Location $env:LIFECYCLE_ROOT
+        try {
+          dotnet restore src/Northstar.Lifecycle/Northstar.Lifecycle.csproj --locked-mode
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build src/Northstar.Lifecycle/Northstar.Lifecycle.csproj -c Release --no-restore -p:SignAssembly=false
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet restore tests/Northstar.Lifecycle.Tests.csproj --locked-mode
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet run --project tests/Northstar.Lifecycle.Tests.csproj -c Release --no-restore -p:SignAssembly=false
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        } finally { Pop-Location }
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: '22'
+    - name: Exercise original server-logic proxy contracts
+      shell: pwsh
+      run: |
+        node "$env:PROXY_ROOT/test-submit.mjs"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        node "$env:PROXY_ROOT/test-edit.mjs"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        node "$env:PROXY_ROOT/test-state.mjs"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    - name: Exercise offline deployment guards
+      shell: pwsh
+      run: |
+        & "$env:DEPLOY_ROOT/tests/Test-Pipeline.ps1"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+        & "$env:DEPLOY_ROOT/tests/Test-ArtifactCrypto.ps1"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: northstar-build-evidence
+        path: |-
+          ${{ env.DEPLOY_ROOT }}/test-results.json
+          ${{ env.DEPLOY_ROOT }}/crypto-test-results.json
+        if-no-files-found: error
+        retention-days: '14'
+  export:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.operation == 'Export' && github.ref == 'refs/heads/master'
+    runs-on: windows-latest
+    environment: northstar-training
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        persist-credentials: false
+    - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+      with:
+        dotnet-version: 10.0.x
+    - name: Check environment protection and install pinned PAC
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        & "$env:DEPLOY_ROOT/Assert-GitHubProtection.ps1" -Repository $env:GITHUB_REPOSITORY
+        dotnet tool install Microsoft.PowerApps.CLI.Tool --version 2.9.3 --tool-path "$env:RUNNER_TEMP/pac"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    - name: Export and encrypt actual unmanaged Training release
+      shell: pwsh
+      env:
+        CONFIRMATION: ${{ inputs.confirmation }}
+        ARTIFACT_KEY: ${{ secrets.NORTHSTAR_ARTIFACT_KEY }}
+      run: |-
+        $private = "$env:RUNNER_TEMP/northstar-private-export"
+        New-Item -ItemType Directory -Path $private -Force | Out-Null
+        try {
+          $pac = "$env:RUNNER_TEMP/pac/pac.exe"
+          $export = "$private/export"
+          & "$env:DEPLOY_ROOT/Invoke-TrainingPipeline.ps1" -Mode Export `
+            -Authentication GitHubFederated -Confirmation $env:CONFIRMATION `
+            -PacPath $pac -OutputPath $export -WorkingDirectory "$private/evidence" |
+            Set-Content "$private/export-result.json"
+          $site = @(Get-ChildItem "$export/site-export" -Filter website.yml -Recurse)
+          if ($site.Count -ne 1) { throw 'Export contains ambiguous site roots.' }
+          & "$env:DEPLOY_ROOT/Invoke-TrainingPipeline.ps1" -Mode Package `
+            -SitePath $site[0].DirectoryName -SolutionPath "$export/solution.zip" `
+            -OutputPath "$private/release.zip" -SourceRevision $env:GITHUB_SHA |
+            Set-Content "$private/package-result.json"
+          Import-Module "$env:DEPLOY_ROOT/ArtifactCrypto.psm1" -Force
+          $public = "$env:RUNNER_TEMP/publish"
+          $summary = Protect-ReleaseArtifact -InputPath "$private/release.zip" `
+            -OutputPath "$public/release.enc.json" -WorkingRoot $public `
+            -KeyBase64 $env:ARTIFACT_KEY -SourceRevision $env:GITHUB_SHA
+          $summary | ConvertTo-Json | Set-Content "$public/release-summary.json"
+        } finally {
+          & "$env:DEPLOY_ROOT/Remove-PrivateWorkingDirectory.ps1" -Path $private -RunnerTemporaryRoot $env:RUNNER_TEMP
+        }
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: northstar-release
+        path: |-
+          ${{ runner.temp }}/publish/release.enc.json
+          ${{ runner.temp }}/publish/release-summary.json
+        if-no-files-found: error
+        retention-days: '30'
+  deploy:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && (inputs.operation == 'Deploy' || inputs.operation == 'Rollback')
+      && github.ref == 'refs/heads/master'
+    runs-on: windows-latest
+    environment: northstar-training
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        persist-credentials: false
+    - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+      with:
+        dotnet-version: 10.0.x
+    - name: Verify producer runs and environment protection
+      id: provenance
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+        CANDIDATE_RUN: ${{ inputs.candidate_run_id }}
+        ROLLBACK_RUN: ${{ inputs.rollback_run_id }}
+      run: |
+        & "$env:DEPLOY_ROOT/Assert-GitHubProtection.ps1" -Repository $env:GITHUB_REPOSITORY
+        $candidate = & "$env:DEPLOY_ROOT/Assert-GitHubRun.ps1" -RunId $env:CANDIDATE_RUN -Repository $env:GITHUB_REPOSITORY
+        $baseline = & "$env:DEPLOY_ROOT/Assert-GitHubRun.ps1" -RunId $env:ROLLBACK_RUN -Repository $env:GITHUB_REPOSITORY
+        "candidate_sha=$candidate" >> $env:GITHUB_OUTPUT
+        "baseline_sha=$baseline" >> $env:GITHUB_OUTPUT
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: northstar-release
+        path: ${{ runner.temp }}/candidate
+        run-id: ${{ inputs.candidate_run_id }}
+        github-token: ${{ github.token }}
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: northstar-release
+        path: ${{ runner.temp }}/rollback
+        run-id: ${{ inputs.rollback_run_id }}
+        github-token: ${{ github.token }}
+    - name: Install pinned PAC
+      shell: pwsh
+      run: |
+        dotnet tool install Microsoft.PowerApps.CLI.Tool --version 2.9.3 --tool-path "$env:RUNNER_TEMP/pac"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    - name: Authenticate encrypted artifacts and update only Training
+      shell: pwsh
+      env:
+        OPERATION: ${{ inputs.operation }}
+        CONFIRMATION: ${{ inputs.confirmation }}
+        CANDIDATE_SHA256: ${{ inputs.candidate_sha256 }}
+        ROLLBACK_SHA256: ${{ inputs.rollback_sha256 }}
+        CANDIDATE_COMMIT: ${{ steps.provenance.outputs.candidate_sha }}
+        BASELINE_COMMIT: ${{ steps.provenance.outputs.baseline_sha }}
+        ARTIFACT_KEY: ${{ secrets.NORTHSTAR_ARTIFACT_KEY }}
+      run: |-
+        $private = "$env:RUNNER_TEMP/northstar-private-deploy"
+        New-Item -ItemType Directory -Path $private -Force | Out-Null
+        try {
+          Import-Module "$env:DEPLOY_ROOT/ArtifactCrypto.psm1" -Force
+          $candidate = Unprotect-ReleaseArtifact `
+            -InputPath "$env:RUNNER_TEMP/candidate/release.enc.json" `
+            -ExpectedCipherSha256 $env:CANDIDATE_SHA256 -OutputPath "$private/candidate/release.zip" `
+            -WorkingRoot $private -KeyBase64 $env:ARTIFACT_KEY -ExpectedSourceRevision $env:CANDIDATE_COMMIT
+          $baseline = Unprotect-ReleaseArtifact `
+            -InputPath "$env:RUNNER_TEMP/rollback/release.enc.json" `
+            -ExpectedCipherSha256 $env:ROLLBACK_SHA256 -OutputPath "$private/rollback/release.zip" `
+            -WorkingRoot $private -KeyBase64 $env:ARTIFACT_KEY -ExpectedSourceRevision $env:BASELINE_COMMIT
+          & "$env:DEPLOY_ROOT/Invoke-TrainingPipeline.ps1" -Mode $env:OPERATION `
+            -Authentication GitHubFederated -Confirmation $env:CONFIRMATION `
+            -PacPath "$env:RUNNER_TEMP/pac/pac.exe" -WorkingDirectory "$private/evidence" `
+            -ArtifactPath $candidate.path -ExpectedSha256 $candidate.plaintextSha256 `
+            -RollbackArtifactPath $baseline.path -RollbackSha256 $baseline.plaintextSha256 `
+            -ExpectedSourceRevision $env:CANDIDATE_COMMIT -ExpectedRollbackRevision $env:BASELINE_COMMIT |
+            Set-Content "$private/deployment-result.json"
+          $public = "$env:RUNNER_TEMP/public-evidence"
+          New-Item -ItemType Directory -Path $public -Force | Out-Null
+          @{operation=$env:OPERATION;status='UPLOADED_PENDING_RUNTIME_ACCEPTANCE';
+            sourceRevision=$env:CANDIDATE_COMMIT;candidateCipherSha256=$env:CANDIDATE_SHA256;
+            rollbackCipherSha256=$env:ROLLBACK_SHA256} |
+            ConvertTo-Json | Set-Content "$public/deployment-summary.json"
+        } finally {
+          & "$env:DEPLOY_ROOT/Remove-PrivateWorkingDirectory.ps1" -Path $private -RunnerTemporaryRoot $env:RUNNER_TEMP
+        }
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      if: always()
+      with:
+        name: northstar-deployment-evidence
+        path: ${{ runner.temp }}/public-evidence/deployment-summary.json
+        if-no-files-found: warn
+        retention-days: '14'
