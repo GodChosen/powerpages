@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<AppModule>
+  <UniqueName>dexp_DataverseDependencyExplorer</UniqueName>
+  <IntroducedVersion>1.1.2.0</IntroducedVersion>
+  <OptimizedFor />
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+  <FormFactor>1</FormFactor>
+  <ClientType>4</ClientType>
+  <NavigationType>0</NavigationType>
+  <AppModuleComponents>
+    <AppModuleComponent type="62" schemaName="dexp_DataverseDependencyExplorer" />
+  </AppModuleComponents>
+  <LocalizedNames>
+    <LocalizedName description="Dataverse Ribbon and Command Audit Explorer" languagecode="1033" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description description="Community metadata audit for unmanaged ribbon and command evidence. No automatic cleanup." languagecode="1033" />
+  </Descriptions>
+</AppModule>

@@ -1,0 +1,152 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  font: 14px system-ui;
+  margin: 24px;
+  color: #243247;
+  background: #f7f8fb;
+}
+h1 {
+  color: #64236a;
+}
+button,
+input,
+select {
+  font: inherit;
+  padding: 8px;
+  margin: 4px;
+  max-width: 100%;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+label {
+  display: inline-block;
+  max-width: 100%;
+}
+fieldset,
+details {
+  border: 1px solid #d2d8e3;
+  border-radius: 5px;
+  padding: 12px;
+  background: white;
+  margin: 16px 0;
+  min-width: 0;
+}
+.table-scroll {
+  overflow: auto;
+  max-height: 680px;
+  border: 1px solid #d2d8e3;
+  background: white;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  min-width: 1640px;
+}
+th,
+td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #dbe0e9;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+th {
+  position: sticky;
+  top: 0;
+  background: #eef0f6;
+  z-index: 1;
+}
+th button {
+  border: 0;
+  background: none;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+}
+th:nth-child(1) {
+  width: 17%;
+}
+th:nth-child(2) {
+  width: 10%;
+}
+th:nth-child(3) {
+  width: 9%;
+}
+th:nth-child(4) {
+  width: 13%;
+}
+th:nth-child(5) {
+  width: 12%;
+}
+th:nth-child(6) {
+  width: 17%;
+}
+th:nth-child(7) {
+  width: 22%;
+}
+td ul {
+  padding-left: 18px;
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+}
+small {
+  display: block;
+  color: #596579;
+  margin-top: 6px;
+}
+tbody tr:nth-child(even) {
+  background: #fafbfe;
+}
+#pages {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 12px 0;
+}
+#status {
+  font-weight: 600;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #64236a;
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  body {
+    margin: 12px;
+  }
+  label {
+    display: block;
+  }
+  #pages {
+    flex-wrap: wrap;
+  }
+}
+
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 240px;
+  overflow: auto;
+  font-size: 12px;
+}
+th:nth-child(8) {
+  width: 20%;
+}
+table {
+  min-width: 2100px;
+}
+th:nth-child(7) {
+  width: 18%;
+}

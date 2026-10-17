@@ -1,0 +1,14 @@
+.demo-banner {
+  padding: 12px 16px;
+  border: 1px solid #d6a300;
+  border-left: 5px solid #b77900;
+  background: #fff7d6;
+  color: #4a3800;
+  border-radius: 5px;
+}
+
+.demo-banner {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}

@@ -1,0 +1,33 @@
+{
+  "version": "1.5.1",
+  "solutionVersion": "1.5.1.0",
+  "validation": "Local package/source verification; no new-environment import is implied.",
+  "files": [
+    {
+      "name": "DataverseRibbonAuditExplorer_1.5.1_unmanaged.zip",
+      "bytes": 27321,
+      "sha256": "92e0e43e714792866b1dd901a0ded6d1f1527cbddff8aec451be13881f0b40d4",
+      "resourceSha256": {
+        "app.js": "7a361171c48f05ee21f28065aae7377056b3b3ed071256998f52c81dee0ce45c",
+        "commands.js": "67c2d7629e77053d6760cccc2b23b760cb7f4dfe8fed2e4087e03ab8d69fac0f",
+        "core.js": "f809fcab4e97d4c4868e011a2ddc06f7f4b9183f703ce30995e56fcdc16246cf",
+        "index.html": "eac424e284013187ff4994260ce3cd2b7cdbc4a5a33e2e7c7b1ef484533f962f",
+        "style.css": "b4d9f677c8c03bd700092d0a653c0c18a84ec82d40b7811994bdc2100ecbadb4",
+        "transport.js": "f01986c84e9fdfbe74a22b444f6d7e2e302ec26d25f2056b3eb7e281aa266a45"
+      }
+    },
+    {
+      "name": "DataverseRibbonAuditExplorer_1.5.1_managed.zip",
+      "bytes": 27322,
+      "sha256": "998ea8f29b4085892ca6a1da327f6a3799ccffb9244b355f216ddb948ef02182",
+      "resourceSha256": {
+        "app.js": "7a361171c48f05ee21f28065aae7377056b3b3ed071256998f52c81dee0ce45c",
+        "commands.js": "67c2d7629e77053d6760cccc2b23b760cb7f4dfe8fed2e4087e03ab8d69fac0f",
+        "core.js": "f809fcab4e97d4c4868e011a2ddc06f7f4b9183f703ce30995e56fcdc16246cf",
+        "index.html": "eac424e284013187ff4994260ce3cd2b7cdbc4a5a33e2e7c7b1ef484533f962f",
+        "style.css": "b4d9f677c8c03bd700092d0a653c0c18a84ec82d40b7811994bdc2100ecbadb4",
+        "transport.js": "f01986c84e9fdfbe74a22b444f6d7e2e302ec26d25f2056b3eb7e281aa266a45"
+      }
+    }
+  ]
+}

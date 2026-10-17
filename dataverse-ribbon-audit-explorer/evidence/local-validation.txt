@@ -1,0 +1,61 @@
+Local validation for dataverse-ribbon-audit-explorer 1.5.1
+Node v20.19.0; platform win32
+This is local validation, not a Dataverse import or independent review.
+
+$ npm run check
+
+> dataverse-ribbon-audit-explorer@1.5.1 check
+> node scripts/check-syntax.mjs
+
+JavaScript syntax passed for runtime, demo, scripts and tests.
+
+$ npm run test
+
+> dataverse-ribbon-audit-explorer@1.5.1 test
+> node tests/core.test.cjs && node tests/extensions.test.cjs && node tests/app.test.cjs && node tests/ribbon-zip.test.cjs && node tests/results.test.cjs && node tests/audit.test.cjs && node tests/audit-app.test.cjs
+
+Core tests passed: keys, dependency direction, CSV escaping
+Extension tests passed: provenance, immutable filtering, export counterparts, deduplication, CSV protection, retries, paging isolation, cancellation, modern JS/FX and placement.
+Focused app regression passed: buttons/pages only, exact solution membership, custom-page type2, dependency names, lazy modern platform type, filtering, no field/form/view inventory.
+Ribbon ZIP tests passed: stored and deflate XML, malformed archive rejection.
+Focused ribbon regression passed: exact buttons only, duplicate layers merged, solutions retained, labels, scripts, rule references, platform scripts external and unsafe XML rejected.
+Unmanaged audit passed: standalone command override, new button/command/rule candidates, global hide, equivalent XML duplicate, same-ID table isolation, managed button affected by unmanaged command, missing flags, unsafe XML, parent gap, modern layers and denied lookup.
+Audit app integration passed: unfiltered all-table discovery, standalone items without button rows, Application Ribbon hide/parent, automatic layer gaps, independent sources after denial, audit filter, item evidence CSV and complete table roster coverage CSV.
+
+$ npm run test:demo
+
+> dataverse-ribbon-audit-explorer@1.5.1 test:demo
+> node tests/demo.test.cjs
+
+Synthetic demo and loopback server passed.
+
+$ npm run test:packages
+
+> dataverse-ribbon-audit-explorer@1.5.1 test:packages
+> node tests/package-validation.test.cjs
+
+Manifest regression passed: omitting the required empty dependency container is rejected.
+
+$ npm run docs:check
+
+> dataverse-ribbon-audit-explorer@1.5.1 docs:check
+> node scripts/check-docs.mjs
+
+Documentation links passed (40 local links).
+
+$ npm run release:verify
+
+> dataverse-ribbon-audit-explorer@1.5.1 release:verify
+> node scripts/verify-release.mjs
+
+Both release packages passed: version, managed flags, eight roots, six exact source hashes, five dependencies and portable app metadata.
+
+$ npm run format:check
+
+> dataverse-ribbon-audit-explorer@1.5.1 format:check
+> prettier --check .
+
+Checking formatting...
+All matched files use Prettier code style!
+
+All local validation commands passed.

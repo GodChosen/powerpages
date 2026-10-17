@@ -1,0 +1,17 @@
+{
+  "publisherCategories": {
+    "11111111-1111-1111-1111-111111111111": {
+      "category": "Customer",
+      "evidence": "Synthetic local QA publisher; not a tenant publisher"
+    }
+  },
+  "components": {
+    "command:classic:account:mscrm.qa.override": {
+      "source": "Synthetic in-memory browser QA fixture; not tenant provenance",
+      "originalVerified": true,
+      "originalPublisherId": "11111111-1111-1111-1111-111111111111",
+      "modifierPublisherIds": [],
+      "modificationCoverageComplete": true
+    }
+  }
+}

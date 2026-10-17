@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{163cf903-bfc9-f111-a05a-6045bdd17415}</WebResourceId>
+  <Name>dexp_/dependency/core.js</Name>
+  <DisplayName>Dependency Explorer core</DisplayName>
+  <WebResourceType>3</WebResourceType>
+  <IntroducedVersion>1.1.0.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/dexp_dependencycorejs163CF903-BFC9-F111-A05A-6045BDD17415</FileName>
+</WebResource>

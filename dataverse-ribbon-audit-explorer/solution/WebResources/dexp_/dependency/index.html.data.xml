@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{43253f98-e2a1-4e9a-9b35-3c7e3ce220a4}</WebResourceId>
+  <Name>dexp_/dependency/index.html</Name>
+  <DisplayName>Dependency Explorer index.html</DisplayName>
+  <LanguageCode>0</LanguageCode>
+  <WebResourceType>1</WebResourceType>
+  <IntroducedVersion>1.1.0.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <DependencyXml>&lt;Dependencies&gt;&lt;Dependency componentType="WebResource"&gt;&lt;Library libraryUniqueId="{e12a0c6a-ea33-4fec-bc09-0676a2741f30}" name="dexp_/dependency/style.css" displayName="Dependency Explorer style.css" /&gt;&lt;Library libraryUniqueId="{163cf903-bfc9-f111-a05a-6045bdd17415}" name="dexp_/dependency/core.js" displayName="Dependency Explorer core" /&gt;&lt;Library libraryUniqueId="{a134ab0a-3971-444c-a2e4-85bee9d8b694}" name="dexp_/dependency/commands.js" displayName="Dependency Explorer commands.js" /&gt;&lt;Library libraryUniqueId="{55bad796-5aa4-4612-8dec-9f9af2c24976}" name="dexp_/dependency/transport.js" displayName="Dependency Explorer transport.js" /&gt;&lt;Library libraryUniqueId="{60471a58-41cd-4d32-8bb6-a90bbc932211}" name="dexp_/dependency/app.js" displayName="Dependency Explorer app.js" /&gt;&lt;/Dependency&gt;&lt;/Dependencies&gt;</DependencyXml>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/dexp_dependencyindexhtml43253F98-E2A1-4E9A-9B35-3C7E3CE220A4</FileName>
+</WebResource>

@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{55bad796-5aa4-4612-8dec-9f9af2c24976}</WebResourceId>
+  <Name>dexp_/dependency/transport.js</Name>
+  <DisplayName>Dependency Explorer transport.js</DisplayName>
+  <WebResourceType>3</WebResourceType>
+  <IntroducedVersion>1.1.0.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/dexp_dependencytransportjs55BAD796-5AA4-4612-8DEC-9F9AF2C24976</FileName>
+</WebResource>
