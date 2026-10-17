@@ -87,6 +87,23 @@ Check 'Manifest identity cannot disguise unrelated binary' {
 }
 
 Check 'Approved Training target accepted' { $null=Read-TrainingPolicy $policyPath }
+$listing="Connected`n Index Website Id Portal Id Friendly Name Portal Url Data Model Version Single Page Application Is Site Active`n [1]  $($policy.websiteId)   $($policy.portalId)   $($policy.websiteName)   $($policy.runtimeUrl)   Enhanced   No   Yes`n"
+Check 'PAC verbose table checks every identity column' {$null=Assert-PacWebsiteListing $listing $policy}
+Check 'Wrapped PAC row and ANSI styling preserve exact identities' {
+    $wrapped=$listing.Replace($policy.websiteName,"Northstar Connect -`n northstar-connect-training").Replace('Enhanced',"$([char]27)[32mEnhanced$([char]27)[0m")
+    $null=Assert-PacWebsiteListing $wrapped $policy
+}
+foreach($case in @(
+    @{name='portal';old=$policy.portalId;new='00000000-0000-0000-0000-000000000001';error='mismatch: portal'},
+    @{name='friendly name';old=$policy.websiteName;new='Northstar Connect - other';error='mismatch: name'},
+    @{name='URL';old=$policy.runtimeUrl;new='https://other.powerappsportals.com/';error='mismatch: url'},
+    @{name='model';old='Enhanced';new='Standard';error='mismatch: model'},
+    @{name='active';old='No   Yes';new='No   No';error='mismatch: active'},
+    @{name='missing portal';old=$policy.portalId;new='';error='format is incomplete'}
+)){
+    Check ('PAC listing rejects changed '+$case.name) {Reject {Assert-PacWebsiteListing ($listing.Replace($case.old,$case.new)) $policy} $case.error}
+}
+Check 'Duplicate website rows are rejected' {Reject {Assert-PacWebsiteListing ($listing+$listing) $policy} 'missing or ambiguous'}
 Check 'Wrong environment is rejected before authentication' {
     $bad=$policy | ConvertTo-Json | ConvertFrom-Json
     $bad.environmentUrl='https://other.crm.dynamics.com/'
