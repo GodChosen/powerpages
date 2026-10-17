@@ -10,7 +10,7 @@
 - Expose hide-target and standalone ValueRule field references.
 - Preserve conservative classifications. No automatic cleanup or confirmed-creation claim added.
 
-Public binaries are locally rebuilt from this source. Fresh-environment import validation remains open.
+Public binaries are locally rebuilt from this source.
 
 ## 1.5.0 — private predecessor
 

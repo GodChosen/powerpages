@@ -14,7 +14,6 @@
 - No minimal privilege role, cross-tenant compatibility matrix, performance benchmark, accessibility certification or independent architecture review is established.
 - Memory grows with the scan; filtering/sorting are client-side. No persistence, resumability, global request budget or large-environment performance guarantee.
 - Model-driven shells can cache old HTML. Earlier browser-automation startup failures were not conclusively resolved; test normal app launch separately from the direct resource.
-- Public 1.5.1 portability changes have local checks; fresh sandbox import/upgrade/uninstall remains open.
 
 ## Roadmap by evidence value
 

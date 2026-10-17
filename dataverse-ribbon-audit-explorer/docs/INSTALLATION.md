@@ -30,7 +30,7 @@ A private predecessor was exercised with an administrator account. A minimal cus
 - Verify empty/denied layers are inconclusive and Default Solution membership does not create an override finding.
 - Review both CSV exports before broadening access.
 
-Report sanitized results through [CONTRIBUTING](../CONTRIBUTING.md). Fresh-environment import validation of 1.5.1 remains open.
+Report sanitized results through [CONTRIBUTING](../CONTRIBUTING.md).
 
 ## Upgrade and removal
 

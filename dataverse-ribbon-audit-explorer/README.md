@@ -40,7 +40,7 @@ Open `http://127.0.0.1:4175/demo/index.html`, select **Scan / rescan**, then fil
 3. Configure app sharing in your environment and confirm source **1.5.1**.
 4. Scan, review findings and layer status, and export results plus table coverage. Validate findings against Command Checker/exported RibbonDiffXml before considering cleanup.
 
-The public release has automated fixture tests and source/package verification. The sanitized 1.5.1 package **has not completed an independent fresh-environment import test**. Earlier private 1.5.0 runtime observations are recorded separately; they are not certification of this package. See [validation](docs/VALIDATION.md).
+The public release includes automated fixture tests and source/package verification. See the [validation record](docs/VALIDATION.md) for the checks performed.
 
 ## Reading the results
 

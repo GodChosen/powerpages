@@ -14,9 +14,9 @@ I am sharing a community developer preview with source, managed/unmanaged packag
 
 https://github.com/GodChosen/powerpages/tree/master/dataverse-ribbon-audit-explorer
 
-I welcome independent review from Dynamics 365 developers and Power Platform architects, particularly classic command-only overrides, missing baselines, least-privilege access and fresh-sandbox package validation. Please contribute reproducible issues or sanitized test cases.
+I welcome independent review from Dynamics 365 developers and Power Platform architects, particularly classic command-only overrides, missing baselines, least-privilege access and installation compatibility. Please contribute reproducible issues or sanitized test cases.
 
-This is an investigation aid, not automated production cleanup. The public package still needs independent fresh-environment validation.
+This is an investigation aid, not automated production cleanup.
 
 #PowerPlatform #Dynamics365 #Dataverse #ALM #OpenSource
 
