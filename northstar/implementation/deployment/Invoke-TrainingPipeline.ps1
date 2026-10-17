@@ -34,6 +34,7 @@ if($Mode -eq 'Package') {
 $stage=Join-Path $evidence ([guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $stage | Out-Null
 $ownedProfile=$null
+$operationFailed=$false
 try {
     if($Mode -ne 'Export') {
         $release=Expand-VerifiedRelease -ArtifactPath $ArtifactPath -ExpectedSha256 $ExpectedSha256 -Destination (Join-Path $stage 'candidate') -PolicyPath $PolicyPath
@@ -100,6 +101,15 @@ try {
         artifactSha256=$ExpectedSha256;rollbackSha256=$RollbackSha256;postExport=$post;
         note='Run the two-contact isolation, lifecycle, CSRF and anonymous tests. Deployment success is not runtime acceptance.'}
     $result | ConvertTo-Json -Depth 8 | Tee-Object -FilePath (Join-Path $stage 'result.json')
+} catch {
+    $operationFailed=$true
+    throw
 } finally {
-    if($ownedProfile) { $null=Invoke-PacChecked @('auth','delete','--name',$ownedProfile) $PacPath }
+    if($ownedProfile) {
+        try {$null=Invoke-PacChecked @('auth','delete','--name',$ownedProfile) $PacPath}
+        catch {
+            if(-not $operationFailed){throw 'Owned PAC authentication profile cleanup failed.'}
+            Write-Warning 'Owned PAC authentication profile cleanup failed; original safe operation failure is preserved.'
+        }
+    }
 }

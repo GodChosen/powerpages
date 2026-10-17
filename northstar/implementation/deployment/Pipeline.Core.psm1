@@ -231,7 +231,10 @@ function Invoke-PacChecked([string[]]$Arguments,[string]$PacPath='pac',[string]$
     $output = @(& $PacPath @Arguments 2>&1 | ForEach-Object { [string]$_ })
     $exitCode=$LASTEXITCODE;$watch.Stop()
     if($exitCode -ne 0){
-        if($FailureOutputPath){Save-PacExportFailure $Arguments ($output -join "`n") $FailureOutputPath}
+        if($FailureOutputPath){
+            try {Save-PacExportFailure $Arguments ($output -join "`n") $FailureOutputPath}
+            catch {Write-Warning 'Private PAC export diagnostic capture failed; original safe PAC failure is preserved.'}
+        }
         $safe=Get-PacFailureClassification ($output -join "`n") $exitCode $watch.Elapsed.TotalSeconds
         throw ('PAC failed: '+($Arguments[0..([Math]::Min(1,$Arguments.Count-1))] -join ' ')+' '+($safe | ConvertTo-Json -Compress))
     }

@@ -215,3 +215,14 @@ the existing protected artifact key, exact source SHA and ciphertext SHA.
 A failed async operation may continue on the service. Inspect its private
 failure evidence and platform job state before any separately reviewed retry;
 never infer that a client timeout cancelled the backend operation.
+The next hosted attempt exposed a composition defect: bare relative crypto
+module imports failed and masked the original PAC failure. The workflow now
+calls one hosted export script through an absolute GITHUB_WORKSPACE anchor;
+that same script resolves helpers and loads crypto before authentication.
+Deploy-side crypto imports are also absolute and loaded before deployment.
+Seven end-to-end fake-PAC cases invoke that exact entry point from another
+working directory, covering successful packaging/encryption, failed-export
+capture/encryption, forced capture/encryption/auth-cleanup/private-cleanup
+failures and original safe error preservation. These are local composition
+checks, not successful hosted export evidence. Cleanup failures remain visible
+and prevent an otherwise successful release from being accepted.
