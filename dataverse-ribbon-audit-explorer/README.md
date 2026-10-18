@@ -6,9 +6,9 @@ You inherit a Dynamics 365 environment, decide to deploy managed solutions going
 
 > **Evidence, not a clean-production certificate.** An unmanaged definition without a returned managed baseline is a **creation candidate**, not a confirmed creation. An empty layer response is inconclusive. The tool never removes customizations.
 
-![Synthetic demonstration of an unmanaged command override](assets/synthetic-audit.png)
+![Dataverse model-driven app showing ribbon and command audit filters, coverage summary and sortable results with solution membership, management states, layers and unmanaged findings](assets/application-overview-1.5.0.png)
 
-_Local fixtures only: no customer environment, production records or independent endorsement._
+_Application overview captured with source 1.5.0. Current public packages are 1.5.1; counts and findings shown belong to the captured scan._
 
 ## What it helps you answer
 
@@ -32,6 +32,10 @@ npm run demo
 ```
 
 Open `http://127.0.0.1:4175/demo/index.html`, select **Scan / rescan**, then filter **Unmanaged audit**. The fixture transport rejects non-demo destinations; the server binds to loopback. Nothing is imported into Dataverse.
+
+![Synthetic demonstration of an unmanaged command override](assets/synthetic-audit.png)
+
+_Local demo fixtures only; this example is separate from the application screenshot above._
 
 ## Install in Dataverse
 
