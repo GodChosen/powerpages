@@ -44,5 +44,16 @@ Reject {Unprotect-ReleaseArtifact $diagnostic $diagnosticSummary.cipherSha256 (J
 Reject {Unprotect-ReleaseArtifact $encrypted $summary.cipherSha256 (Join-Path $work 'release-as-diagnostic.txt') $work $key $revision -Purpose PacExportDiagnostic};$count++
 $purposeRewritten=Join-Path $work 'purpose-rewritten.enc.json';$changed=Get-Content $diagnostic -Raw|ConvertFrom-Json;$changed.format='northstar-release-aes256gcm-v1';$changed|ConvertTo-Json|Set-Content $purposeRewritten
 Reject {Unprotect-ReleaseArtifact $purposeRewritten (Get-FileHash $purposeRewritten -Algorithm SHA256).Hash.ToLowerInvariant() (Join-Path $work 'purpose-rewritten.zip') $work $key $revision};$count++
+$importDiagnostic=Join-Path $work 'import-diagnostic.enc.json'
+$importSummary=Protect-ReleaseArtifact $input $importDiagnostic $work $key $revision -Purpose PacImportDiagnostic
+$importPlain=Join-Path $work 'import-diagnostic.txt'
+$null=Unprotect-ReleaseArtifact $importDiagnostic $importSummary.cipherSha256 $importPlain $work $key $revision -Purpose PacImportDiagnostic
+if((Get-FileHash $input).Hash -cne (Get-FileHash $importPlain).Hash){throw 'Import diagnostic roundtrip failed.'};$count++
+foreach($purpose in @('Release','PacExportDiagnostic')){
+    Reject {Unprotect-ReleaseArtifact $importDiagnostic $importSummary.cipherSha256 (Join-Path $work ('import-as-'+$purpose+'.zip')) $work $key $revision -Purpose $purpose};$count++
+}
+Reject {Unprotect-ReleaseArtifact $encrypted $summary.cipherSha256 (Join-Path $work 'release-as-import.txt') $work $key $revision -Purpose PacImportDiagnostic};$count++
+$forgedImport=Join-Path $work 'import-purpose-rewritten.enc.json';$changed=Get-Content $importDiagnostic -Raw|ConvertFrom-Json;$changed.format='northstar-release-aes256gcm-v1';$changed|ConvertTo-Json|Set-Content $forgedImport
+Reject {Unprotect-ReleaseArtifact $forgedImport (Get-FileHash $forgedImport -Algorithm SHA256).Hash.ToLowerInvariant() (Join-Path $work 'import-purpose-rewritten.zip') $work $key $revision};$count++
 @{status='PASS';tests=$count;scope='AES-256-GCM roundtrip, independent randomness, wrong key, tampered authentication tag, wrong repository/AAD, wrong source revision, no plaintext on failed authentication, and explicit working-root confinement.'}|ConvertTo-Json|Tee-Object -FilePath (Join-Path $root 'crypto-test-results.json')
 exit 0

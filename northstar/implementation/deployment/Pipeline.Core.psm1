@@ -213,16 +213,31 @@ function Get-TrainingSolutionExportArguments($Policy,[string]$Path) {
     return @('solution','export','--environment',$Policy.environmentUrl,'--name',$Policy.solutionUniqueName,'--path',$Path,'--async','--max-async-wait-time','10')
 }
 
+function Get-TrainingSolutionImportArguments($Policy,[string]$Path) {
+    return @('solution','import','--environment',$Policy.environmentUrl,'--path',$Path,'--activate-plugins','--publish-changes','--async','--max-async-wait-time','10')
+}
+
+function Save-PacImportFailure([string[]]$Arguments,[string]$Text,[string]$Path) {
+    Assert-True ($Arguments.Count -ge 2 -and $Arguments[0] -ceq 'solution' -and $Arguments[1] -ceq 'import') 'Failure capture is limited to solution import; authentication output is forbidden.'
+    Save-PacSolutionFailure $Text $Path
+}
+
 function Save-PacExportFailure([string[]]$Arguments,[string]$Text,[string]$Path) {
     Assert-True ($Arguments.Count -ge 2 -and $Arguments[0] -ceq 'solution' -and $Arguments[1] -ceq 'export') 'Failure capture is limited to solution export; authentication output is forbidden.'
+    Save-PacSolutionFailure $Text $Path
+}
+
+function Save-PacSolutionFailure([string]$Text,[string]$Path) {
     $temporaryRoot=if($env:RUNNER_TEMP){$env:RUNNER_TEMP}else{[IO.Path]::GetTempPath()}
     $root=[IO.Path]::GetFullPath($temporaryRoot).TrimEnd([IO.Path]::DirectorySeparatorChar)+[IO.Path]::DirectorySeparatorChar
     $full=[IO.Path]::GetFullPath($Path)
     Assert-True ($full.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) 'Failure capture must remain under the private temporary root.'
     Assert-True (-not (Test-Path -LiteralPath $full)) 'Failure capture already exists.'
+    # Bound retained private output; redact before truncating so a cut token cannot escape.
     $redacted=[regex]::Replace($Text,'(?i)Bearer\s+\S+','Bearer [REDACTED]')
     $redacted=[regex]::Replace($redacted,'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+','[REDACTED JWT]')
     $redacted=[regex]::Replace($redacted,'(?i)((?:client[_-]?secret|access[_-]?token|refresh[_-]?token|password)\s*[:=]\s*)\S+','$1[REDACTED]')
+    if($redacted.Length -gt 65536){$redacted=$redacted.Substring(0,65536)+"`n[TRUNCATED]"}
     [IO.File]::WriteAllText($full,$redacted,[Text.UTF8Encoding]::new($false))
 }
 
@@ -232,8 +247,12 @@ function Invoke-PacChecked([string[]]$Arguments,[string]$PacPath='pac',[string]$
     $exitCode=$LASTEXITCODE;$watch.Stop()
     if($exitCode -ne 0){
         if($FailureOutputPath){
-            try {Save-PacExportFailure $Arguments ($output -join "`n") $FailureOutputPath}
-            catch {Write-Warning 'Private PAC export diagnostic capture failed; original safe PAC failure is preserved.'}
+            try {
+                if($Arguments.Count -ge 2 -and $Arguments[0] -ceq 'solution' -and $Arguments[1] -ceq 'import'){
+                    Save-PacImportFailure $Arguments ($output -join "`n") $FailureOutputPath
+                }else{Save-PacExportFailure $Arguments ($output -join "`n") $FailureOutputPath}
+            }
+            catch {Write-Warning 'Private PAC solution diagnostic capture failed; original safe PAC failure is preserved.'}
         }
         $safe=Get-PacFailureClassification ($output -join "`n") $exitCode $watch.Elapsed.TotalSeconds
         throw ('PAC failed: '+($Arguments[0..([Math]::Min(1,$Arguments.Count-1))] -join ' ')+' '+($safe | ConvertTo-Json -Compress))

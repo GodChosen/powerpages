@@ -12,8 +12,9 @@ function Get-ArtifactKey([string]$KeyBase64) {
     if($key.Length -ne 32){throw 'Artifact key must contain exactly 32 bytes.'}
     return ,$key
 }
-function Get-ArtifactFormat([ValidateSet('Release','PacExportDiagnostic')][string]$Purpose='Release') {
+function Get-ArtifactFormat([ValidateSet('Release','PacExportDiagnostic','PacImportDiagnostic')][string]$Purpose='Release') {
     if($Purpose -ceq 'Release'){return 'northstar-release-aes256gcm-v1'}
+    if($Purpose -ceq 'PacImportDiagnostic'){return 'northstar-pac-import-diagnostic-aes256gcm-v1'}
     return 'northstar-pac-export-diagnostic-aes256gcm-v1'
 }
 function Get-ArtifactContext([string]$Repository,[string]$Environment,[string]$SourceRevision,[string]$Purpose='Release') {
@@ -25,7 +26,7 @@ function Protect-ReleaseArtifact {
     param([string]$InputPath,[string]$OutputPath,[string]$WorkingRoot,
         [string]$KeyBase64,[string]$SourceRevision,
         [string]$Repository='GodChosen/powerpages',[string]$Environment='northstar-training',
-        [ValidateSet('Release','PacExportDiagnostic')][string]$Purpose='Release')
+        [ValidateSet('Release','PacExportDiagnostic','PacImportDiagnostic')][string]$Purpose='Release')
     $output=Assert-CryptoPath $OutputPath $WorkingRoot
     if($SourceRevision -notmatch '^[0-9a-f]{40}$'){throw 'Full source commit SHA required.'}
     $aad=Get-ArtifactContext $Repository $Environment $SourceRevision $Purpose
@@ -51,7 +52,7 @@ function Unprotect-ReleaseArtifact {
     param([string]$InputPath,[string]$ExpectedCipherSha256,[string]$OutputPath,
         [string]$WorkingRoot,[string]$KeyBase64,[string]$ExpectedSourceRevision,
         [string]$Repository='GodChosen/powerpages',[string]$Environment='northstar-training',
-        [ValidateSet('Release','PacExportDiagnostic')][string]$Purpose='Release')
+        [ValidateSet('Release','PacExportDiagnostic','PacImportDiagnostic')][string]$Purpose='Release')
     if($ExpectedSourceRevision -notmatch '^[0-9a-f]{40}$'){throw 'Expected source revision must be a full lowercase 40-character hexadecimal commit SHA.'}
     $output=Assert-CryptoPath $OutputPath $WorkingRoot
     if($ExpectedCipherSha256 -notmatch '^[0-9a-f]{64}$' -or

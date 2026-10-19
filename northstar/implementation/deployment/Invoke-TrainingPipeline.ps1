@@ -46,7 +46,7 @@ try {
         $selectedPath=Join-Path $stage $selected
         [object[]]$commands=,([string[]]@('pages','upload','--environment',$policy.environmentUrl,'--path',(Join-Path $selectedPath 'site'),'--deploymentProfile','training','--modelVersion','2','--forceUploadAll'))
         if($Mode -ne 'Rollback') {
-            $commands=,([string[]]@('solution','import','--environment',$policy.environmentUrl,'--path',(Join-Path $selectedPath 'solution.zip'),'--activate-plugins','--publish-changes')) + $commands
+            $commands=,([string[]](Get-TrainingSolutionImportArguments $policy (Join-Path $selectedPath 'solution.zip'))) + $commands
         }
         $plan=@{
             mode=$Mode;target=$policy.environmentUrl;environmentId=$policy.environmentId;
@@ -92,7 +92,9 @@ try {
     # before uploading its dependent site configuration. Never auto-rollback a
     # partial import or replay business writes on a network timeout.
     foreach($command in $plan.commands) {
-        $null=Invoke-PacChecked $command $PacPath
+        if($command[0] -ceq 'solution' -and $command[1] -ceq 'import'){
+            $null=Invoke-PacChecked $command $PacPath -FailureOutputPath (Join-Path $evidence 'pac-solution-import-failure.txt')
+        }else{$null=Invoke-PacChecked $command $PacPath}
     }
     $null=Assert-LiveTrainingTarget $policy $PacPath
     $post=Join-Path $stage 'post-upload-export'
