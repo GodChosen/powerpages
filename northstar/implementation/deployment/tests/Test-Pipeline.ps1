@@ -106,6 +106,13 @@ Check 'Solution export uses bounded async with exact target and no retry flag' {
     $arguments=Get-TrainingSolutionExportArguments $policy 'private-output.zip'
     Assert-True ($arguments -contains '--async' -and $arguments[-2] -ceq '--max-async-wait-time' -and $arguments[-1] -ceq '10' -and $arguments[3] -ceq $policy.environmentUrl -and $arguments[5] -ceq $policy.solutionUniqueName) 'Incorrect export execution mode or target.'
 }
+Check 'Solution import uses bounded async with exact target and no retry flag' {
+    $arguments=Get-TrainingSolutionImportArguments $policy 'reviewed-solution.zip'
+    Assert-True (($arguments -join '|') -ceq ('solution|import|--environment|'+$policy.environmentUrl+'|--path|reviewed-solution.zip|--activate-plugins|--publish-changes|--async|--max-async-wait-time|10')) 'Import arguments differ from reviewed bounded command.'
+}
+Check 'Import failure capture rejects authentication output' {
+    Reject {Save-PacImportFailure @('auth','create') 'private auth output' (Join-Path ([IO.Path]::GetTempPath()) 'forbidden-auth.txt')} 'limited to solution import'
+}
 Check 'Private failure capture redacts credentials and forbids auth commands' {
     $captureRoot=if($env:RUNNER_TEMP){$env:RUNNER_TEMP}else{[IO.Path]::GetTempPath()}
     $capture=Join-Path $captureRoot ('northstar-test-'+[guid]::NewGuid().ToString('N')+'.txt')

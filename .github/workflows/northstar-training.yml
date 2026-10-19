@@ -89,6 +89,9 @@ jobs:
         & (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'tests/Test-HostedExport.ps1')
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+        & (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'tests/Test-HostedDeploy.ps1')
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
         & "$env:DEPLOY_ROOT/tests/Test-GitHubProtection.ps1"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -98,6 +101,7 @@ jobs:
           ${{ env.DEPLOY_ROOT }}/test-results.json
           ${{ env.DEPLOY_ROOT }}/crypto-test-results.json
           ${{ env.DEPLOY_ROOT }}/hosted-export-test-results.json
+          ${{ env.DEPLOY_ROOT }}/hosted-deploy-test-results.json
           ${{ env.DEPLOY_ROOT }}/protection-test-results.json
         if-no-files-found: error
         retention-days: '14'
@@ -212,43 +216,8 @@ jobs:
         BASELINE_COMMIT: ${{ steps.provenance.outputs.baseline_sha }}
         ARTIFACT_KEY: ${{ secrets.NORTHSTAR_ARTIFACT_KEY }}
       run: |-
-        $private = "$env:RUNNER_TEMP/northstar-private-deploy"
-        New-Item -ItemType Directory -Path $private -Force | Out-Null
-        $primaryFailure = $null
-        try {
-          Import-Module (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'ArtifactCrypto.psm1') -Force
-          $candidate = Unprotect-ReleaseArtifact `
-            -InputPath "$env:RUNNER_TEMP/candidate/release.enc.json" `
-            -ExpectedCipherSha256 $env:CANDIDATE_SHA256 -OutputPath "$private/candidate/release.zip" `
-            -WorkingRoot $private -KeyBase64 $env:ARTIFACT_KEY -ExpectedSourceRevision $env:CANDIDATE_COMMIT
-          $baseline = Unprotect-ReleaseArtifact `
-            -InputPath "$env:RUNNER_TEMP/rollback/release.enc.json" `
-            -ExpectedCipherSha256 $env:ROLLBACK_SHA256 -OutputPath "$private/rollback/release.zip" `
-            -WorkingRoot $private -KeyBase64 $env:ARTIFACT_KEY -ExpectedSourceRevision $env:BASELINE_COMMIT
-          & (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'Invoke-TrainingPipeline.ps1') -Mode $env:OPERATION `
-            -Authentication GitHubFederated -Confirmation $env:CONFIRMATION `
-            -PacPath "$env:RUNNER_TEMP/pac/pac.exe" -WorkingDirectory "$private/evidence" `
-            -ArtifactPath $candidate.path -ExpectedSha256 $candidate.plaintextSha256 `
-            -RollbackArtifactPath $baseline.path -RollbackSha256 $baseline.plaintextSha256 `
-            -ExpectedSourceRevision $env:CANDIDATE_COMMIT -ExpectedRollbackRevision $env:BASELINE_COMMIT |
-            Set-Content "$private/deployment-result.json"
-          $public = "$env:RUNNER_TEMP/public-evidence"
-          New-Item -ItemType Directory -Path $public -Force | Out-Null
-          @{operation=$env:OPERATION;status='UPLOADED_PENDING_RUNTIME_ACCEPTANCE';
-            sourceRevision=$env:CANDIDATE_COMMIT;candidateCipherSha256=$env:CANDIDATE_SHA256;
-            rollbackCipherSha256=$env:ROLLBACK_SHA256} |
-            ConvertTo-Json | Set-Content "$public/deployment-summary.json"
-        } catch {
-          $primaryFailure = $_
-          throw
-        } finally {
-          try {
-            & (Join-Path (Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT) 'Remove-PrivateWorkingDirectory.ps1') -Path $private -RunnerTemporaryRoot $env:RUNNER_TEMP
-          } catch {
-            if (-not $primaryFailure) { throw 'Private deployment cleanup failed; release is not successful.' }
-            Write-Warning 'Private deployment cleanup failed; original operation failure is preserved. Temporary files may remain on this runner.'
-          }
-        }
+        $root = Join-Path $env:GITHUB_WORKSPACE $env:DEPLOY_ROOT
+        & (Join-Path $root 'Invoke-HostedTrainingDeploy.ps1')
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       if: always()
       with:
@@ -256,3 +225,13 @@ jobs:
         path: ${{ runner.temp }}/public-evidence/deployment-summary.json
         if-no-files-found: warn
         retention-days: '14'
+    - name: Retain purpose-bound encrypted import failure evidence
+      if: failure()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: northstar-import-diagnostic
+        path: |-
+          ${{ runner.temp }}/import-diagnostics/pac-import.enc.json
+          ${{ runner.temp }}/import-diagnostics/diagnostic-summary.json
+        if-no-files-found: ignore
+        retention-days: '7'

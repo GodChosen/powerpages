@@ -226,3 +226,11 @@ capture/encryption, forced capture/encryption/auth-cleanup/private-cleanup
 failures and original safe error preservation. These are local composition
 checks, not successful hosted export evidence. Cleanup failures remain visible
 and prevent an otherwise successful release from being accepted.
+
+### Bounded import and failure evidence
+
+Solution import uses the exact reviewed environment and ZIP with `--async --max-async-wait-time 10`, retaining plug-in activation and publishing. [PAC documentation](https://learn.microsoft.com/en-us/power-platform/developer/cli/reference/solution#import) defines the wait in minutes. This does not establish the cause of any earlier client failure: an unsuccessful CLI result can coexist with a subsequently successful platform ImportJob. Check the platform job before a separately approved retry; no automatic retry or rollback occurs.
+
+The workflow runs `Invoke-HostedTrainingDeploy.ps1`, which loads helpers before authentication, authenticates both release artifacts, and invokes the existing target/provenance gates. A failed solution import stops site upload. Only that command's failed output may be retained privately, redacted and capped at 65,536 characters plus a truncation marker. Authentication output is never captured. Failed-import evidence is encrypted with AES-256-GCM under the distinct `PacImportDiagnostic` format/AAD; Release and export-diagnostic consumers reject it, including a relabeled envelope. The seven-day `northstar-import-diagnostic` artifact contains only ciphertext and its safe digest/source summary. Private working data is cleaned in `finally`; capture, encryption and cleanup failures preserve an existing safe operation error, while cleanup failure after success makes the job fail.
+
+Run `tests/Test-HostedDeploy.ps1` after `tests/Test-Pipeline.ps1`. It executes the same hosted entry point from another working directory with synthetic encrypted packages and fake PAC, including failure sequencing, exact bounded import arguments, hash/source/policy rejection, authentication failure, diagnostic redaction/purpose separation, real locked-file cleanup failures, successful import/upload and site-only replay. These are offline contract tests, not a real deployment or runtime acceptance.
